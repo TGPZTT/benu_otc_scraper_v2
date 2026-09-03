@@ -104,6 +104,59 @@ def test_non_product_otc_text_is_not_classification():
     data=parse_product(html,"https://benu.hu/products/kozmetikum-teszt","https://benu.hu")
     assert data["classification"]=="UNKNOWN"
 
+def test_analytics_item_type_fallback_matches_current_product():
+    html="""
+    <html><head><title>Vitaday teszt</title></head><body>
+    <product-info>
+      <h1>Vitaday teszt 17 db</h1>
+      <div class="price__container">Internetes ár 599 Ft</div>
+    </product-info>
+    <script type="application/json" class="analytics-product-data">
+    {"items":[{"item_name":"Advil ajánló","sku":"999","item_type":"OTC"}]}
+    </script>
+    <script type="application/json" class="analytics-product-data">
+    {"items":[{
+      "item_name":"Vitaday teszt 17 db",
+      "item_brand":"Vitaday",
+      "sku":"127815",
+      "product_breadcrumbs":"Vitaminok > C-vitamin",
+      "distributor":"InnoPharm Kft.",
+      "item_type":"ETR"
+    }]}
+    </script>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/vitaday-teszt","https://benu.hu")
+    assert data["classification"]=="NON_MEDICINE"
+    assert data["classification_source"]=="analytics_item_type"
+    assert data["classification_raw"]=="ETR"
+    assert data["brand"]=="Vitaday"
+    assert data["sku"]=="127815"
+    assert data["breadcrumbs"]==["Vitaminok","C-vitamin"]
+    assert data["distributor"]=="InnoPharm Kft."
+
+def test_homeopathic_category_overrides_otc_item_type():
+    html="""
+    <html><head><title>Acidum teszt</title></head><body>
+    <product-info>
+      <h1>Acidum Arsenicosum Anhydricum golyócskák 15 Ch 4g</h1>
+      <div class="price__container">Internetes ár 1 499 Ft</div>
+    </product-info>
+    <script type="application/json" class="analytics-product-data">
+    {"items":[{
+      "item_name":"Acidum Arsenicosum Anhydricum golyócskák 15 Ch 4g",
+      "sku":"123456",
+      "product_breadcrumbs":"Homeopátiás készítmények",
+      "item_type":"OTC"
+    }]}
+    </script>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/acidum-teszt","https://benu.hu")
+    assert data["classification"]=="NON_MEDICINE"
+    assert data["classification_source"]=="homeopathic_category"
+    assert data["classification_raw"]=="Homeopátiás készítmények"
+
 def test_info_description():
     text="Termékinformáció Ez a termékinformáció. Termékleírás Ez a részletes leírás. Betegtájékoztató"
     i,d=extract_product_info(text)

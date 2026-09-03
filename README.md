@@ -7,7 +7,7 @@ Teljesebb BENU webshop scraper, amely:
 - minden felderített termékoldalt feldolgoz
 - **nem a teljes oldal szövegéből dönti el az OTC státuszt**
 - a termék saját "Besorolás típusa" mezőjét használja elsődlegesen
-- fallbackként csak a fő termékblokk saját badge-eit használja
+- fallbackként a fő termékblokk saját badge-eit, majd a termékhez illesztett analytics `item_type` mezőt használja
 - OTC / nem OTC / ismeretlen besorolást tárol
 - kinyeri a listaárat, az akciós árat és az egységárat
 - kinyeri az elmúlt 30 nap legalacsonyabb árát
@@ -35,7 +35,13 @@ A v2 kizárólag a termékoldal saját:
 
     Besorolás típusa: ...
 
-mezőjét tekinti elsődleges forrásnak. Ha ez hiányzik, a parser kizárólag a fő termékblokk (`product-info` / `#product-infos`) saját badge-eiből következtethet, például a `Vény nélkül kapható gyógyszer` termékbadge alapján. A teljes oldalszöveg, footer, tooltip, szállítási leírás és ajánló termékek szövege nem számít besorolási forrásnak.
+mezőjét tekinti elsődleges forrásnak. Ha ez hiányzik, a parser a fő termékblokk (`product-info` / `#product-infos`) saját badge-eiből következtethet, például a `Vény nélkül kapható gyógyszer` termékbadge alapján.
+
+Ha badge alapján sincs megbízható besorolás, a parser a termék saját analytics JSON blokkjából választja ki a név/SKU alapján illeszkedő itemet, és annak `item_type` mezőjét használhatja fallbackként. Ez például az `OTC`, `ETR`, `GYSE` és `Egyéb` BENU-kódokat kezeli. Ajánlott termékek analytics adata nem írhatja felül az aktuális terméket, mert a parser az aktuális név/SKU alapján pontozza az itemeket.
+
+A teljes oldalszöveg, footer, tooltip, szállítási leírás és ajánló termékek szövege nem számít besorolási forrásnak.
+
+A `Homeopátiás készítmények` kategória külön üzleti szabályként mindig `NON_MEDICINE` besorolást kap, akkor is, ha a BENU analytics adata `OTC` item type-ot ad. Ezek a termékek tárolva maradnak, de nem kerülhetnek az OTC exportba és a későbbi publikus OTC felületre.
 
 Ezért az OTC státusz:
 
@@ -151,7 +157,7 @@ Fő táblák:
 - `scrape_runs`
 - `scrape_errors`
 
-A `products` táblában minden felderített BENU-termék szerepel. Az OTC szűrés az `classification` mezőn történik. A `classification_source` mutatja, hogy a besorolás `metadata`, `product_badge` vagy `unknown` forrásból jött-e.
+A `products` táblában minden felderített BENU-termék szerepel. Az OTC szűrés az `classification` mezőn történik. A `classification_source` mutatja, hogy a besorolás `metadata`, `product_badge`, `analytics_item_type`, `homeopathic_category` vagy `unknown` forrásból jött-e.
 
 ## Raw HTML
 

@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import unicodedata
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from scraper.utils import normalize_space,parse_huf,parse_json_ld,first_nonempty,unique_keep_order
@@ -19,6 +20,20 @@ CLASSIFICATION_MAP={
     "étrend-kiegészítő":"NON_MEDICINE",
     "kozmetikum":"NON_MEDICINE",
     "gyógyszernek nem minősülő gyógyhatású készítmény":"NON_MEDICINE",
+}
+
+ANALYTICS_ITEM_TYPE_MAP={
+    "otc":"OTC",
+    "etr":"NON_MEDICINE",
+    "etrend kiegeszito":"NON_MEDICINE",
+    "etrend-kiegeszito":"NON_MEDICINE",
+    "etrendkiegeszito":"NON_MEDICINE",
+    "gyse":"NON_MEDICINE",
+    "gyogyaszati segedeszkoz":"NON_MEDICINE",
+    "egyeb":"NON_MEDICINE",
+    "rx":"PRESCRIPTION",
+    "venykoteles":"PRESCRIPTION",
+    "venykoteles gyogyszer":"PRESCRIPTION",
 }
 
 def text_of(node):
@@ -50,6 +65,12 @@ def _json_types(item):
 def _has_json_type(item,type_name):
     return type_name in _json_types(item)
 
+def _fold_text(value):
+    if not value:
+        return ""
+    normalized=unicodedata.normalize("NFKD",normalize_space(value).lower())
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
 def _walk_json(value):
     if isinstance(value,dict):
         yield value
@@ -77,6 +98,58 @@ def json_product(json_ld):
 def json_product_group(json_ld):
     groups=[node for node in _walk_json(json_ld) if _has_json_type(node,"ProductGroup")]
     return groups[0] if groups else {}
+
+def _iter_analytics_items(soup):
+    for tag in soup.select("script.analytics-product-data"):
+        raw=tag.string or tag.get_text()
+        if not raw:
+            continue
+        try:
+            payload=json.loads(raw)
+        except Exception:
+            continue
+        items=payload.get("items")
+        if isinstance(items,dict):
+            items=[items]
+        if not isinstance(items,list):
+            continue
+        for item in items:
+            if isinstance(item,dict):
+                yield item
+
+def analytics_product_item(soup,name=None,sku=None):
+    items=list(_iter_analytics_items(soup))
+    if not items:
+        return {}
+
+    wanted_name=_fold_text(name)
+    wanted_sku=normalize_space(sku)
+
+    def score(item_index):
+        index,item=item_index
+        value=0
+        item_name=_fold_text(item.get("item_name"))
+        item_sku=normalize_space(item.get("sku"))
+        if wanted_name and item_name:
+            if item_name==wanted_name:
+                value+=30
+            elif item_name in wanted_name or wanted_name in item_name:
+                value+=12
+        if wanted_sku and item_sku==wanted_sku:
+            value+=16
+        if index==0:
+            value+=1
+        return value
+
+    best_index,best_item=max(enumerate(items),key=score)
+    if (wanted_name or wanted_sku) and score((best_index,best_item))<=1:
+        return {}
+    return best_item
+
+def classify_from_analytics_item(item):
+    item_type=normalize_space(item.get("item_type")) if item else None
+    classification=ANALYTICS_ITEM_TYPE_MAP.get(_fold_text(item_type),"UNKNOWN")
+    return classification,item_type
 
 def _json_image_index(json_ld):
     index={}
@@ -405,6 +478,16 @@ def extract_breadcrumbs(soup):
             return vals
     return []
 
+def analytics_breadcrumbs(item):
+    raw=normalize_space(item.get("product_breadcrumbs")) if item else None
+    if not raw:
+        return []
+    return unique_keep_order(part.strip() for part in raw.split(">"))
+
+def is_homeopathic_product(breadcrumbs):
+    breadcrumb_text=_fold_text(" ".join(breadcrumbs or []))
+    return "homeopatias" in breadcrumb_text
+
 def extract_images(soup,json_prod,json_ld,base_url,name=None):
     urls=[]
     image_index=_json_image_index(json_ld)
@@ -574,31 +657,47 @@ def parse_product(html,url,base_url):
         raise ValueError("Product name not found")
 
     metadata=extract_product_metadata(ptext)
+    initial_sku=jp.get("sku") or extract_sku(ptext)
+    analytics_item=analytics_product_item(soup,name,initial_sku)
     badges=extract_product_badges(soup)
     badge_classification,badge_raw=classify_from_product_badges(badges)
+    analytics_classification,analytics_raw=classify_from_analytics_item(analytics_item)
     classification_source="metadata" if metadata["classification"]!="UNKNOWN" else "unknown"
     if metadata["classification"]=="UNKNOWN" and badge_classification!="UNKNOWN":
         metadata["classification"]=badge_classification
         metadata["classification_raw"]=badge_raw
         classification_source="product_badge"
+    if metadata["classification"]=="UNKNOWN" and analytics_classification!="UNKNOWN":
+        metadata["classification"]=analytics_classification
+        metadata["classification_raw"]=analytics_raw
+        classification_source="analytics_item_type"
 
     prices=extract_main_prices(ptext)
     json_price=extract_json_price(jp)
     if prices["price_huf"] is None:
         prices["price_huf"]=json_price
+    if prices["price_huf"] is None and analytics_item.get("list_price") is not None:
+        try:
+            prices["price_huf"]=int(float(analytics_item["list_price"]))
+        except Exception:
+            pass
 
     info,description=extract_product_info(ptext)
     leaflet=extract_leaflet(ptext)
-    brand=extract_brand(soup,jp,jpg)
+    brand=extract_brand(soup,jp,jpg) or normalize_space(analytics_item.get("item_brand"))
     images=extract_images(soup,jp,json_ld,base_url,name)
-    breadcrumbs=extract_breadcrumbs(soup)
+    breadcrumbs=extract_breadcrumbs(soup) or analytics_breadcrumbs(analytics_item)
+    if is_homeopathic_product(breadcrumbs):
+        metadata["classification"]="NON_MEDICINE"
+        metadata["classification_raw"]="Homeopátiás készítmények"
+        classification_source="homeopathic_category"
     strength,form,package=extract_form_and_strength(name,metadata["active_ingredient_raw"])
 
     data={
         "url":url,
         "name":name,
         "brand":brand,
-        "sku":jp.get("sku") or extract_sku(ptext),
+        "sku":initial_sku or normalize_space(analytics_item.get("sku")),
         "ean":metadata["ean"] or _json_gtin(jp),
         "classification":metadata["classification"],
         "classification_raw":metadata["classification_raw"],
@@ -616,7 +715,7 @@ def parse_product(html,url,base_url):
         "product_information":info,
         "description":description,
         "leaflet_text":leaflet,
-        "distributor":metadata["distributor"],
+        "distributor":metadata["distributor"] or normalize_space(analytics_item.get("distributor")),
         "manufacturer":None,
         "registration_number":None,
         "breadcrumbs":breadcrumbs,
