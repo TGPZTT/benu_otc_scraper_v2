@@ -193,6 +193,13 @@ def main():
     otc_data_quality_candidates = []
     for p in otc:
         breadcrumbs = " > ".join(load_json(p["breadcrumbs_json"], []))
+        detail_text = " ".join(
+            [
+                p["product_information"] or "",
+                p["description"] or "",
+            ]
+        )
+        detail_folded = fold_text(detail_text)
         haystack = " ".join(
             [
                 p["name"] or "",
@@ -206,6 +213,11 @@ def main():
         medicine_confirmed = has_medicine_signal(p["raw_text"])
         if contains_any(haystack, non_medicine_needles) and not medicine_confirmed:
             classification_reasons.append("non_medicine_keyword")
+        if (
+            "homeopatias gyogyszer" in detail_folded
+            or "homeopatias keszitmeny" in detail_folded
+        ):
+            classification_reasons.append("homeopathic_product_text")
         if (
             p["classification_source"] != "metadata"
             and contains_any(haystack, review_needles)

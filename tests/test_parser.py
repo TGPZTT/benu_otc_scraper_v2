@@ -205,6 +205,30 @@ def test_homeopathic_non_medicine_source_is_preserved():
     assert data["classification_source"]=="analytics_item_type"
     assert data["classification_raw"]=="GYSE"
 
+def test_homeopathic_product_text_overrides_otc_badge():
+    html="""
+    <html><head><title>Calmacare teszt</title></head><body>
+    <product-info>
+      <h1>Calmacare belsőleges oldat 10x1ml</h1>
+      <div class="price__container">Internetes ár 3 499 Ft Egységár: 349 Ft / db</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Termékinformáció
+        A külföldön közkedvelt Camilia homeopátiás gyógyszer már Magyarországon is kapható,
+        Calmacare néven, jóváhagyott terápiás javallat nélkül.
+        EAN: 3352712007974
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/calmacare-teszt","https://benu.hu")
+    assert data["classification"]=="NON_MEDICINE"
+    assert data["classification_source"]=="homeopathic_product_text"
+    assert data["ingredient_names"]==[]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
 def test_shopify_barcode_is_product_bound_ean_fallback():
     html="""
     <html><head><title>Barcode teszt</title></head><body>
@@ -364,6 +388,31 @@ def test_active_ingredients_from_mit_tartalmaz_section():
     assert "Egyéb összetevők" not in data["active_ingredient_raw"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
+def test_leaflet_active_ingredient_allows_missing_question_mark_and_no_article():
+    html="""
+    <html><head><title>Buscopan teszt</title></head><body>
+    <product-info>
+      <h1>Buscopan 10 mg bevont tabletta 20 db</h1>
+      <div class="price__container">Internetes ár 3 999 Ft Egységár: 200 Ft / db</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Betegtájékoztató
+        Mit tartalmaz a Buscopan 10 mg bevont tabletta
+        A készítmény hatóanyaga 10 mg hioszcin-butilbromid bevont tablettánként.
+        Egyéb összetevők: borkősav, sztearinsav.
+        EAN: 5999880347129
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/buscopan-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="10 mg hioszcin-butilbromid"
+    assert data["active_ingredient_source"]=="leaflet_keszitmeny_hatoanyaga"
+    assert data["ingredient_names"]==["hioszcin-butilbromid"]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
 def test_shortened_leaflet_product_name_is_not_treated_as_other_variant():
     html="""
     <html><head><title>Amorolfin teszt</title></head><body>
@@ -514,9 +563,33 @@ def test_structured_active_ingredient_stops_before_singular_excipients():
     </body></html>
     """
     data=parse_product(html,"https://benu.hu/products/allegra-teszt","https://benu.hu")
-    assert data["active_ingredient_raw"]=="120 mg fexofenadin-hidroklorid filmtablettánként,"
+    assert data["active_ingredient_raw"]=="120 mg fexofenadin-hidroklorid"
     assert data["active_ingredient_source"]=="structured_hatany"
     assert data["ingredient_names"]==["fexofenadin-hidroklorid"]
+
+def test_structured_active_ingredient_stops_before_directions():
+    html="""
+    <html><head><title>Canesten teszt</title></head><body>
+    <product-info>
+      <h1>Canesten 10 mg/g krém 20g</h1>
+      <div class="price__container">Internetes ár 3 999 Ft Egységár: 200 Ft / g</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Besorolás típusa: vény nélkül kapható gyógyszer
+        Hatóanyag: klotrimazol Az érintett bőrterületre naponta 2-3 alkalommal vigye fel vékony rétegben.
+        Összetevők: 10 mg klotrimazolt tartalmaz grammonként,
+        Segédanyagok: cetil-sztearil-alkohol.
+        EAN: 4008500128312
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/canesten-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="klotrimazol"
+    assert data["active_ingredient_source"]=="structured_hatany"
+    assert data["ingredient_names"]==["klotrimazol"]
 
 def test_usage_instruction_active_ingredient_source():
     html="""
@@ -538,7 +611,7 @@ def test_usage_instruction_active_ingredient_source():
     </body></html>
     """
     data=parse_product(html,"https://benu.hu/products/orrspray-teszt","https://benu.hu")
-    assert data["active_ingredient_raw"]=="oximetazolin-hidroklorid."
+    assert data["active_ingredient_raw"]=="oximetazolin-hidroklorid"
     assert data["active_ingredient_source"]=="usage_instruction_mit_tartalmaz"
     assert data["ingredient_names"]==["oximetazolin-hidroklorid"]
 
@@ -595,6 +668,11 @@ def test_ingredient_names_drop_excipients_and_warnings():
     assert split_ingredient_names(
         "2 mg mangán ‑szulfát‑monohidrát formájában, 15 mg cink-szulfát-monohidrát formájában."
     ) == ["mangán","cink"]
+    assert split_ingredient_names(
+        "Egy darab kemény kapszulában: 80 mg tisztított, beállított "
+        "páfrányfenyőlevél (Ginkgo biloba L., folium) száraz kivonat "
+        "(gyógynövény-kivonat arány: 35-67:1) amelynek ginkgo flavon glikozid tartalma: 17,6-21,6 mg."
+    ) == ["páfrányfenyőlevél száraz kivonat"]
     assert split_ingredient_names(
         "1 ml (~0,918 g) belsőleges folyadék tartalma: 1 ml etanolos kivonat "
         "(1:9,75) a következő növényekből: gyömbér gyökértörzs "
