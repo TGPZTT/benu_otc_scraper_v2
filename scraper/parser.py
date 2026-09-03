@@ -36,6 +36,13 @@ ANALYTICS_ITEM_TYPE_MAP={
     "venykoteles gyogyszer":"PRESCRIPTION",
 }
 
+ACTIVE_STOP_PATTERN=(
+    r"\b(?:Egyéb\s+összetevők|Segédanyag(?:ok)?|Segédanyagként|A\s+segédanyagok|"
+    r"Ismert\s+hatású\s+segédanyagok|További\s+információ(?:kért)?|"
+    r"Nem\s+alkalmazható|Ellenjavallat|Milyen\s+az?|A\s+forgalomba|"
+    r"A\s+gyógyszer\s+gyermekektől|Szállítási\s+információk|EAN)\b"
+)
+
 def text_of(node):
     return normalize_space(node.get_text(" ",strip=True)) if node else None
 
@@ -70,6 +77,14 @@ def _fold_text(value):
         return ""
     normalized=unicodedata.normalize("NFKD",normalize_space(value).lower())
     return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+def _decode_json_string(value):
+    if value is None:
+        return None
+    try:
+        return json.loads(f'"{value}"')
+    except Exception:
+        return value
 
 def _walk_json(value):
     if isinstance(value,dict):
@@ -150,6 +165,26 @@ def classify_from_analytics_item(item):
     item_type=normalize_space(item.get("item_type")) if item else None
     classification=ANALYTICS_ITEM_TYPE_MAP.get(_fold_text(item_type),"UNKNOWN")
     return classification,item_type
+
+def extract_shopify_barcode(html,name=None,sku=None):
+    wanted_name=_fold_text(name)
+    wanted_sku=normalize_space(sku)
+    pattern=(
+        r'"sku"\s*:\s*"(?P<sku>(?:\\.|[^"])*)".{0,1500}?'
+        r'"name"\s*:\s*"(?P<name>(?:\\.|[^"])*)".{0,1500}?'
+        r'"barcode"\s*:\s*(?:"(?P<barcode>[0-9]{8,14})"|null)'
+    )
+    for match in re.finditer(pattern,html or "",re.I|re.S):
+        barcode=match.group("barcode")
+        if not barcode:
+            continue
+        item_sku=normalize_space(_decode_json_string(match.group("sku")))
+        item_name=_fold_text(_decode_json_string(match.group("name")))
+        if wanted_sku and item_sku==wanted_sku:
+            return barcode
+        if wanted_name and item_name==wanted_name:
+            return barcode
+    return None
 
 def _json_image_index(json_ld):
     index={}
@@ -244,27 +279,53 @@ def _classify_raw(raw):
             return val,key
     return "UNKNOWN",raw
 
+def clean_active_ingredient_value(value):
+    value=normalize_space(value)
+    if not value:
+        return None
+    value=re.split(ACTIVE_STOP_PATTERN,value,1,flags=re.I)[0]
+    marker=re.search(
+        r"\b(?:A\s+)?készítmény\s+hatóanyaga(?:i)?\s*:?\s*",
+        value,
+        re.I,
+    )
+    if marker and marker.start()<220:
+        value=value[marker.end():]
+    value=re.sub(r"^(?:az|a)\s+","",value,flags=re.I)
+    value=re.sub(r"\s+(amely|ami|mely)\b.*$","",value,flags=re.I)
+    value=re.sub(r"\s+(tasakonként|tablettánként|kapszulánként|ml-enként)\.?$","",value,flags=re.I)
+    return normalize_space(value) or None
+
 def extract_active_ingredient_fallback(text):
     if not text:
         return None
     source=normalize_space(text)
     patterns=[
+        r"\bA\s+hatóanyagok\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetevők\b|$)",
+        r"\bA\s+hatóanyag\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetevők\b|$)",
+        r"\bÖsszetevők\s+listája\s*:\s*(.+?)(?=\bBetegtájékoztató\b|\bTermékleírás\b|$)",
+        r"\bMit\s+tartalmaz\s+(?:az|a)\s+[^?]{2,180}\?\s*-?\s*(.+?)(?=\bEgyéb\s+összetevők\b|\bMilyen\b|\bA\s+forgalomba\b|$)",
         r"\bA\s+készítmény\s+hatóanyagai\b\s*:?\s*(.+?)(?=\bEgyéb\s+összetevők\b|\bIsmert\s+hatású\s+segédanyagok\b|\bMilyen\b|$)",
         r"\bA\s+készítmény\s+hatóanyaga\b\s*(?::|az?\s+)\s*([^.;]{2,220})",
         r"\bhatóanyaga\b\s+az?\s+([^,.;]{2,180})",
         r"\bhatóanyag(?:ok)?\s*:\s*([^.;]{2,220})",
+        r"\b([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+(?:-[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+)+)\s+tartalmú\b",
     ]
     for pattern in patterns:
         m=re.search(pattern,source,re.I)
         if not m:
             continue
-        value=normalize_space(m.group(1))[:700]
-        value=re.sub(r"^(?:az|a)\s+","",value,flags=re.I)
-        value=re.sub(r"\s+(amely|ami|mely)\b.*$","",value,flags=re.I)
-        value=re.sub(r"\s+(tasakonként|tablettánként|kapszulánként|ml-enként)\.?$","",value,flags=re.I)
+        value=clean_active_ingredient_value(m.group(1)[:2200])
         if value and not value.lower().startswith(("keressen","a keresett")):
             return value
     return None
+
+def should_prefer_active_ingredient_fallback(current,candidate):
+    if not current or not candidate:
+        return False
+    current_names=split_ingredient_names(current)
+    candidate_names=split_ingredient_names(candidate)
+    return len(candidate_names)>=3 and len(candidate_names)>len(current_names)
 
 def extract_product_metadata(text):
     # We deliberately only inspect the first metadata block. On current BENU
@@ -274,9 +335,21 @@ def extract_product_metadata(text):
     classification,known_raw=_classify_raw(classification_fragment)
     classification_raw=known_raw if known_raw else classification_fragment
 
-    active_raw=_extract_after_label(text,r"Hatóanyag(?:ok)?",max_chars=600,require_colon=True)
-    if not active_raw:
-        active_raw=extract_active_ingredient_fallback(text)
+    active_raw=_extract_after_label(
+        text,
+        r"Hatóanyag(?:ok)?",
+        stop_markers=[
+            "Segédanyagok","A segédanyagok","Ismert hatású segédanyagok",
+            "További információ","Nem alkalmazható","Ellenjavallat",
+        ],
+        max_chars=2200,
+        require_colon=True,
+    )
+    fallback_active_raw=extract_active_ingredient_fallback(text)
+    if should_prefer_active_ingredient_fallback(active_raw,fallback_active_raw):
+        active_raw=fallback_active_raw
+    elif not active_raw:
+        active_raw=fallback_active_raw
     if not active_raw:
         active_raw=_extract_after_label(
             text,
@@ -285,6 +358,7 @@ def extract_product_metadata(text):
             max_chars=700,
             require_colon=True,
         )
+    active_raw=clean_active_ingredient_value(active_raw)
 
     distributor=(
         _extract_after_label(text,r"Forgalmazó",max_chars=800,require_colon=True)
@@ -292,7 +366,7 @@ def extract_product_metadata(text):
         or _extract_after_label(text,r"Forgalmazása",max_chars=800,require_colon=True)
     )
 
-    em=re.search(r"EAN\s*:\s*([0-9]{8,14})",text,re.I)
+    em=re.search(r"\bEAN(?:-kód)?\b\s*:?\s*([0-9]{8,14})",text,re.I)
     ean=em.group(1) if em else None
 
     return {
@@ -488,6 +562,20 @@ def is_homeopathic_product(breadcrumbs):
     breadcrumb_text=_fold_text(" ".join(breadcrumbs or []))
     return "homeopatias" in breadcrumb_text
 
+def is_vitamin_category(breadcrumbs):
+    breadcrumb_text=_fold_text(" ".join(breadcrumbs or []))
+    return "vitamin" in breadcrumb_text or "multivitamin" in breadcrumb_text
+
+def has_medicine_leaflet_signal(text):
+    folded=_fold_text(text)
+    signals=[
+        "ez a gyogyszer orvosi rendelveny nelkul kaphato",
+        "ezt a gyogyszert mindig pontosan",
+        "mielott elkezdi szedni ezt a gyogyszert",
+        "mielott elkezdi alkalmazni ezt a gyogyszert",
+    ]
+    return any(signal in folded for signal in signals)
+
 def extract_images(soup,json_prod,json_ld,base_url,name=None):
     urls=[]
     image_index=_json_image_index(json_ld)
@@ -592,18 +680,23 @@ def split_ingredient_names(active_raw):
     if not active_raw:
         return []
     # Remove common quantity fragments while keeping the raw field separately.
-    s=normalize_space(active_raw)
+    s=clean_active_ingredient_value(active_raw)
+    if not s:
+        return []
     first_sentence=re.split(r"\.\s+",s,1)[0]
-    if 0<len(first_sentence.split())<=4 and not re.search(r"\d",first_sentence):
+    if first_sentence:
         s=first_sentence
+    s=re.sub(r"-\(([^)]{1,5})\)-",r"-\1-",s)
     s=re.sub(r"\([^)]*\)","",s)
     s=s.replace(":"," ")
-    s=re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg/ml|mg/g|mg|g|µg|mcg|ml|%)\b","",s,flags=re.I)
+    s=re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg/ml|mg/g|mg|g|µg|mcg|ml|NE|IU|%)\b","",s,flags=re.I)
     s=re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:milliliterenként|milliliter)\b","",s,flags=re.I)
-    s=re.sub(r"\b(?:tasakonként|tablettánként|kapszulánként|pezsgőtablettánként|rágótablettánként|ml-enként|oldatban)\b","",s,flags=re.I)
-    s=re.sub(r"\b(?:gyomornedv-ellenálló|bevont|film|filmtabletta|tabletta|kapszula|krém|szuszpenzió)\b","",s,flags=re.I)
-    s=re.sub(r"\b(?:egy|gramm|tartalmaz|tartalmaz\.)\b","",s,flags=re.I)
-    parts=re.split(r"\s+\+\s+|\s+és\s+|\s+ill\.\s+|\s+illetve\s+|;",s,flags=re.I)
+    s=re.sub(r"\b(?:tasakonként|tablettánként|filmtablettánként|kapszulánként|pezsgőtablettánként|rágótablettánként|milliliterenként|milliliterben|grammonként|cseppenként|üvegenként|ml-enként|oldatban)\b","",s,flags=re.I)
+    s=re.sub(r"\b(?:tasakban|tablettában|filmtablettában|kapszulában|pezsgőtablettában|rágótablettában|befújásnyi|befújás|lemosható\s+kenőcsben)\b","",s,flags=re.I)
+    s=re.sub(r"\b\d+(?:[.,]\d+)?\b","",s)
+    s=re.sub(r"\b(?:gyomornedv-ellenálló|bevont|film|filmtabletta|tabletta|lágy|kapszula|krém|szuszpenzió|oldatos|orrspray|gél|kenőcs)\b","",s,flags=re.I)
+    s=re.sub(r"\b(?:egy|gramm|készítmény|hatóanyaga|hatóanyagai|hatóanyagok?|tartalmú|tartalmaz|tartalmaz\.|van)\b","",s,flags=re.I)
+    parts=re.split(r"\s+\+\s+|\s+és\s+|\s+ill\.\s+|\s+illetve\s+|;|,",s,flags=re.I)
     out=[]
     for part in parts:
         part=normalize_space(part)
@@ -613,8 +706,22 @@ def split_ingredient_names(active_raw):
             if not words or words[-1].lower()!=word.lower():
                 words.append(word)
         part=" ".join(words)
+        part=re.sub(r"^(?:az|a)\s+","",part,flags=re.I)
+        part=re.sub(r"\b(?:az|a)\s*$","",part,flags=re.I)
+        part=re.sub(r"\b(vagy|ha|önnek|gyógyszer|allergiás|alkalmazható|olvassa|mellékelt|lásd)\b.*$","",part,flags=re.I)
+        part=re.sub(r"\s+formájában\)?\s*$","",part,flags=re.I)
+        part=re.sub(
+            r"^(vas|réz|cink|kalcium|magnézium|mangán|jód|molibdén|króm|szelén|vanádium|foszfor|bór)\s*[-–‑].*$",
+            r"\1",
+            part,
+            flags=re.I,
+        )
+        part=re.sub(r"(?:ot|et|at)\b","",part,flags=re.I)
+        part=re.sub(r"(?<=ol)t\b","",part,flags=re.I)
+        part=re.sub(r"(?<=[né])t\b","",part,flags=re.I)
+        part=part.strip(" ,.;:-–‑")
         part=re.sub(r"\s{2,}"," ",part)
-        if part and len(part)<300:
+        if part and 2<=len(part)<120:
             out.append(part)
     return unique_keep_order(out)
 
@@ -687,18 +794,28 @@ def parse_product(html,url,base_url):
     brand=extract_brand(soup,jp,jpg) or normalize_space(analytics_item.get("item_brand"))
     images=extract_images(soup,jp,json_ld,base_url,name)
     breadcrumbs=extract_breadcrumbs(soup) or analytics_breadcrumbs(analytics_item)
-    if is_homeopathic_product(breadcrumbs):
+    if is_homeopathic_product(breadcrumbs) and metadata["classification"]!="NON_MEDICINE":
         metadata["classification"]="NON_MEDICINE"
         metadata["classification_raw"]="Homeopátiás készítmények"
         classification_source="homeopathic_category"
+    elif (
+        metadata["classification"]=="OTC"
+        and is_vitamin_category(breadcrumbs)
+        and not has_medicine_leaflet_signal(ptext)
+    ):
+        metadata["classification"]="NON_MEDICINE"
+        metadata["classification_raw"]="Vitamin category without medicine leaflet signal"
+        classification_source="vitamin_category_without_medicine_signal"
     strength,form,package=extract_form_and_strength(name,metadata["active_ingredient_raw"])
+    sku=initial_sku or normalize_space(analytics_item.get("sku"))
+    ean=metadata["ean"] or _json_gtin(jp) or extract_shopify_barcode(html,name,sku)
 
     data={
         "url":url,
         "name":name,
         "brand":brand,
-        "sku":initial_sku or normalize_space(analytics_item.get("sku")),
-        "ean":metadata["ean"] or _json_gtin(jp),
+        "sku":sku,
+        "ean":ean,
         "classification":metadata["classification"],
         "classification_raw":metadata["classification_raw"],
         "classification_source":classification_source,

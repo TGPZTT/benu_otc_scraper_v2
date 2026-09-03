@@ -12,7 +12,7 @@ Teljesebb BENU webshop scraper, amely:
 - kinyeri a listaárat, az akciós árat és az egységárat
 - kinyeri az elmúlt 30 nap legalacsonyabb árát
 - kinyeri a márkát, cikkszámot, EAN-t, forgalmazót
-- kinyeri a "Hatóanyag" mezőt
+- kinyeri és normalizálja a "Hatóanyag" mezőt
 - kinyeri a termékinformációt és termékleírást
 - megőrzi a betegtájékoztató szövegét, ha elérhető
 - kinyeri a gyógyszerformát, hatáserősséget és kiszerelést
@@ -42,6 +42,10 @@ Ha badge alapján sincs megbízható besorolás, a parser a termék saját analy
 A teljes oldalszöveg, footer, tooltip, szállítási leírás és ajánló termékek szövege nem számít besorolási forrásnak.
 
 A `Homeopátiás készítmények` kategória külön üzleti szabályként mindig `NON_MEDICINE` besorolást kap, akkor is, ha a BENU analytics adata `OTC` item type-ot ad. Ezek a termékek tárolva maradnak, de nem kerülhetnek az OTC exportba és a későbbi publikus OTC felületre.
+
+A vitamin/multivitamin kategóriás termékek csak akkor maradhatnak publikus OTC rekordok, ha a termék saját szövegében/betegtájékoztatójában egyértelmű gyógyszer-jel található, például az, hogy a készítmény orvosi rendelvény nélkül kapható gyógyszer. Ha ilyen jel nincs, a parser `NON_MEDICINE` besorolást ad `vitamin_category_without_medicine_signal` forrással.
+
+Ha a felső termékmeta csak túl általános hatóanyagértéket ad (például egy multivitamin esetén csak `C-vitamin`), de a betegtájékoztatóban részletes `Mit tartalmaz...` / `A készítmény hatóanyagai...` lista szerepel, a parser a részletesebb listát részesíti előnyben. Az ingredient export közben levágja a segédanyagokat, ellenjavallati szövegeket és gyakori sóforma-részleteket.
 
 Ezért az OTC státusz:
 
@@ -136,11 +140,23 @@ data/exports/otc_products.json
 data/exports/ingredients.csv
 ```
 
+## Adatminőségi riport
+
+```powershell
+python scripts/analyze_quality.py
+```
+
+Ez nem indít scrapinget, csak a meglévő `data/benu_otc.db` és `data/exports` fájlokat olvassa. Összesíti a besorolásokat, forrásokat, hiányzó mezőket, incomplete rekordokat, gyanús árakat és OTC false positive jelölteket.
+
 ## Hibakezelés
 
 A `classification` mező adatbázis-szinten kötelező, de a scraper mindig `UNKNOWN` értéket használ, ha a BENU oldalon nem található megbízható besorolás. Így egyetlen atipikus oldal sem okoz `NOT NULL constraint failed` hibát.
 
 A futás végén az összesítő tartalmazza az `incomplete` darabszámot is. Ez olyan oldalt jelent, ahol a név megvan, de legalább egy kritikus mező hiányzik vagy a parser rövid/gyanús oldalt kapott. A hiányossági jelzések a `parse_warnings` exportmezőben is látszanak. Az ilyen oldalak HTML-je `data/incomplete_html/` alá is bekerül, a tényleges feldolgozási kivételek HTML-je pedig `data/failed_html/` alatt kerül mentésre.
+
+## EAN források
+
+Az EAN elsődlegesen a termék saját `EAN` mezőjéből vagy JSON-LD `gtin` mezőjéből jön. Fallbackként a parser a Shopify termék-variáns `barcode` mezőjét is használhatja, de csak akkor, ha a variáns név/SKU alapján az aktuális termékhez illeszkedik. Analytics `product_id` vagy `item_id` értékből nem készít EAN-t.
 
 ## Adatbázis
 
@@ -157,7 +173,7 @@ Fő táblák:
 - `scrape_runs`
 - `scrape_errors`
 
-A `products` táblában minden felderített BENU-termék szerepel. Az OTC szűrés az `classification` mezőn történik. A `classification_source` mutatja, hogy a besorolás `metadata`, `product_badge`, `analytics_item_type`, `homeopathic_category` vagy `unknown` forrásból jött-e.
+A `products` táblában minden felderített BENU-termék szerepel. Az OTC szűrés az `classification` mezőn történik. A `classification_source` mutatja, hogy a besorolás `metadata`, `product_badge`, `analytics_item_type`, `homeopathic_category`, `vitamin_category_without_medicine_signal` vagy `unknown` forrásból jött-e.
 
 ## Raw HTML
 
