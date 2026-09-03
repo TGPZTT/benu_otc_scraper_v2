@@ -87,6 +87,7 @@ def test_product_badge_classification_fallback():
     assert data["classification"]=="OTC"
     assert data["classification_source"]=="product_badge"
     assert data["active_ingredient_raw"]=="acetilcisztein"
+    assert data["active_ingredient_source"]=="product_information_keszitmeny_hatoanyaga"
 
 def test_non_product_otc_text_is_not_classification():
     html="""
@@ -282,6 +283,7 @@ def test_active_ingredients_from_leaflet_hatanyagok_sentence():
     """
     data=parse_product(html,"https://benu.hu/products/actifed-teszt","https://benu.hu")
     assert data["active_ingredient_raw"]=="xilometazolin-hidroklorid és a dexpantenol"
+    assert data["active_ingredient_source"]=="leaflet_hatanyagok_sentence"
     assert data["ingredient_names"]==["xilometazolin-hidroklorid","dexpantenol"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
@@ -306,10 +308,11 @@ def test_active_ingredients_from_mit_tartalmaz_section():
     """
     data=parse_product(html,"https://benu.hu/products/actival-junior-teszt","https://benu.hu")
     assert data["active_ingredient_raw"].startswith("417 NE A-vitamint")
+    assert data["active_ingredient_source"]=="leaflet_mit_tartalmaz"
     assert "Egyéb összetevők" not in data["active_ingredient_raw"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
-def test_algopyrin_trio_manual_override_beats_mismatched_product_info():
+def test_tartalmu_fallback_ignores_mismatched_product_info():
     html="""
     <html><head><title>Algopyrin Trio teszt</title></head><body>
     <product-info>
@@ -326,8 +329,31 @@ def test_algopyrin_trio_manual_override_beats_mismatched_product_info():
     </body></html>
     """
     data=parse_product(html,"https://benu.hu/products/algopyrin-trio-tabletta-quarelin","https://benu.hu")
-    assert data["active_ingredient_raw"]=="400 mg metamizol-nátrium, 60 mg koffein, 40 mg drotaverin-hidroklorid"
-    assert data["ingredient_names"]==["metamizol-nátrium","koffein","drotaverin-hidroklorid"]
+    assert data["active_ingredient_raw"] is None
+    assert data["active_ingredient_source"] is None
+    assert data["ingredient_names"]==[]
+    assert "missing_active_ingredient_for_otc" in data["parse_warnings"]
+
+def test_active_ingredient_from_matching_tartalmu_sentence():
+    html="""
+    <html><head><title>Algopyrin 500 mg filmtabletta teszt</title></head><body>
+    <product-info>
+      <h1>Algopyrin 500 mg filmtabletta 20 db</h1>
+      <div class="price__container">Internetes ár 2 999 Ft</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Termékinformáció
+        Az Algopyrin 500 mg filmtabletta metamizol-nátrium-monohidrát tartalmú, vény nélkül kapható gyógyszer.
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/algopyrin-500-mg-filmtabletta-20-db","https://benu.hu")
+    assert data["active_ingredient_raw"]=="metamizol-nátrium-monohidrát"
+    assert data["active_ingredient_source"]=="product_information_tartalmu_sentence"
+    assert data["ingredient_names"]==["metamizol-nátrium-monohidrát"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
 def test_detailed_leaflet_ingredients_override_generic_vitamin_metadata():
@@ -356,8 +382,79 @@ def test_detailed_leaflet_ingredients_override_generic_vitamin_metadata():
     """
     data=parse_product(html,"https://benu.hu/products/actival-extra-teszt","https://benu.hu")
     assert data["active_ingredient_raw"].startswith("1 filmtablettában")
+    assert data["active_ingredient_source"]=="leaflet_mit_tartalmaz"
     assert data["ingredient_names"]==["all-E-retinol","bétakarotin","aszkorbinsav"]
     assert "Segédanyag" not in data["active_ingredient_raw"]
+
+def test_structured_active_ingredient_stops_before_singular_excipients():
+    html="""
+    <html><head><title>Allegra teszt</title></head><body>
+    <product-info>
+      <h1>Allegra 120 mg filmtabletta 30 db</h1>
+      <div class="price__container">Internetes ár 5 999 Ft</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Besorolás típusa: vény nélkül kapható gyógyszer
+        Hatóanyag: 120 mg fexofenadin-hidroklorid filmtablettánként,
+        Egyéb összetevő(k): magnézium-sztearát, kroszkarmellóz-nátrium.
+        EAN: 5909990994697
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/allegra-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="120 mg fexofenadin-hidroklorid filmtablettánként,"
+    assert data["active_ingredient_source"]=="structured_hatany"
+    assert data["ingredient_names"]==["fexofenadin-hidroklorid"]
+
+def test_usage_instruction_active_ingredient_source():
+    html="""
+    <html><head><title>Orrspray teszt</title></head><body>
+    <product-info>
+      <h1>Orrspray teszt 15ml</h1>
+      <div class="price__container">Internetes ár 2 999 Ft</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Használati utasítás
+        Mit tartalmaz az Orrspray teszt?
+        A készítmény hatóanyaga az oximetazolin-hidroklorid.
+        Egyéb összetevő(k): benzalkónium-klorid.
+        EAN: 5999528942266
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/orrspray-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="oximetazolin-hidroklorid."
+    assert data["active_ingredient_source"]=="usage_instruction_mit_tartalmaz"
+    assert data["ingredient_names"]==["oximetazolin-hidroklorid"]
+
+def test_json_ld_active_ingredient_source():
+    html="""
+    <html><head>
+    <title>JSON-LD teszt</title>
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"Product","name":"JSON-LD teszt","sku":"123","activeIngredient":"acetilcisztein"}
+    </script>
+    </head><body>
+    <product-info>
+      <h1>JSON-LD teszt</h1>
+      <div class="price__container">Internetes ár 1 999 Ft</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>EAN: 5999999999999</div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/json-ld-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="acetilcisztein"
+    assert data["active_ingredient_source"]=="json_ld"
+    assert data["ingredient_names"]==["acetilcisztein"]
 
 def test_ingredient_names_drop_excipients_and_warnings():
     assert split_ingredient_names(

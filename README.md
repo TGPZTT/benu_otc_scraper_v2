@@ -45,7 +45,9 @@ A `Homeopátiás készítmények` kategória külön üzleti szabályként mindi
 
 A vitamin/multivitamin kategóriás termékek csak akkor maradhatnak publikus OTC rekordok, ha a termék saját szövegében/betegtájékoztatójában egyértelmű gyógyszer-jel található, például az, hogy a készítmény orvosi rendelvény nélkül kapható gyógyszer. Ha ilyen jel nincs, a parser `NON_MEDICINE` besorolást ad `vitamin_category_without_medicine_signal` forrással.
 
-Ha a felső termékmeta csak túl általános hatóanyagértéket ad (például egy multivitamin esetén csak `C-vitamin`), de a betegtájékoztatóban részletes `Mit tartalmaz...` / `A készítmény hatóanyagai...` lista szerepel, a parser a részletesebb listát részesíti előnyben. Az ingredient export közben levágja a segédanyagokat, ellenjavallati szövegeket és gyakori sóforma-részleteket.
+Ha a felső termékmeta csak túl általános hatóanyagértéket ad (például egy multivitamin esetén csak `C-vitamin`), de a betegtájékoztatóban vagy használati utasításban részletes `Mit tartalmaz...` / `A készítmény hatóanyagai...` lista szerepel, a parser a részletesebb listát részesíti előnyben. Az ingredient export közben levágja a segédanyagokat, ellenjavallati szövegeket és gyakori sóforma-részleteket.
+
+A hatóanyag mellé az `active_ingredient_source` mező is mentésre kerül. Ez jelzi, hogy a találat például `structured_hatany`, `leaflet_mit_tartalmaz`, `usage_instruction_mit_tartalmaz`, `product_information_tartalmu_sentence`, `description_tartalmu_sentence` vagy `json_ld` forrásból jött.
 
 Ezért az OTC státusz:
 

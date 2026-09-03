@@ -37,17 +37,75 @@ ANALYTICS_ITEM_TYPE_MAP={
 }
 
 ACTIVE_STOP_PATTERN=(
-    r"\b(?:Egyéb\s+összetevők|Segédanyag(?:ok)?|Segédanyagként|A\s+segédanyagok|"
+    r"\b(?:Egyéb\s+összetev(?:ő|ők)(?:\(k\))?|Összetevők,\s*allergének|"
+    r"Segédanyag(?:ok)?|Segédanyagként|A\s+segédanyagok|"
     r"Ismert\s+hatású\s+segédanyagok|További\s+információ(?:kért)?|"
     r"Nem\s+alkalmazható|Ellenjavallat|Milyen\s+az?|A\s+forgalomba|"
-    r"A\s+gyógyszer\s+gyermekektől|Szállítási\s+információk|EAN)\b"
+    r"A\s+készítmény\s+külleme|Bevonat|A\s+gyógyszer\s+gyermekektől|"
+    r"Szállítási\s+információk|EAN)\b"
 )
 
-MANUAL_ACTIVE_INGREDIENT_OVERRIDES={
-    # BENU currently exposes a mismatched Algopyrin 500 text block on this Trio
-    # page, so a generic "tartalmú" fallback would understate the combination.
-    "algopyrin-trio":"400 mg metamizol-nátrium, 60 mg koffein, 40 mg drotaverin-hidroklorid",
+PRODUCT_NAME_STOP_TOKENS={
+    "mg","ml","g","db","x","filmtabletta","tabletta","kapszula","lagy",
+    "bevont","oldatos","orrspray","szuszpenzio","granulatum","kenocs",
+    "krem","gel","csepp","szopogato","rago","belsoleges",
 }
+
+PRODUCT_VARIANT_TOKENS={
+    "trio","duo","plus","cold","rapid","forte","dolo","kid","junior",
+    "extra","max","senior",
+}
+
+ACTIVE_FIELD_STOP_MARKERS=[
+    "Segédanyagok","Segédanyag","A segédanyagok","Egyéb összetevők",
+    "Egyéb összetevő(k)","Egyéb összetevő","Összetevők, allergének",
+    "Ismert hatású segédanyagok","További információ","Nem alkalmazható",
+    "Ellenjavallat","Bevonat",
+]
+
+ACTIVE_COMPOSITION_STOP_MARKERS=[
+    "Ismert hatású segédanyagok","Segédanyagok","Segédanyag",
+    "Egyéb összetevők","Adagolás",
+]
+
+ACTIVE_TEXT_PATTERNS=[
+    (
+        "hatanyagok_sentence",
+        r"\bA\s+hatóanyagok\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetev(?:ő|ők)(?:\(k\))?\b|$)",
+    ),
+    (
+        "hatanyag_sentence",
+        r"\bA\s+hatóanyag\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetev(?:ő|ők)(?:\(k\))?\b|$)",
+    ),
+    (
+        "osszetevok_listaja",
+        r"\bÖsszetevők\s+listája\s*:\s*(.+?)(?=\bBetegtájékoztató\b|\bTermékleírás\b|$)",
+    ),
+    (
+        "mit_tartalmaz",
+        r"\bMit\s+tartalmaz\s+(?:az|a)\s+[^?]{2,180}\?\s*-?\s*(.+?)(?=\bEgyéb\s+összetev(?:ő|ők)(?:\(k\))?\b|\bIsmert\s+hatású\s+segédanyagok\b|\bMilyen\b|\bA\s+forgalomba\b|$)",
+    ),
+    (
+        "keszitmeny_hatoanyagai",
+        r"\bA\s+készítmény\s+hatóanyagai\b\s*:?\s*(.+?)(?=\bEgyéb\s+összetev(?:ő|ők)(?:\(k\))?\b|\bIsmert\s+hatású\s+segédanyagok\b|\bMilyen\b|$)",
+    ),
+    (
+        "keszitmeny_hatoanyaga",
+        r"\bA\s+készítmény\s+hatóanyaga\b\s*(?::|az?\s+)\s*([^.;]{2,220})",
+    ),
+    (
+        "hatoanyaga_az",
+        r"\bhatóanyaga\b\s+az?\s+([^,.;]{2,180})",
+    ),
+    (
+        "hatoanyag_label",
+        r"\bhatóanyag(?:ok)?\s*:\s*([^.;]{2,220})",
+    ),
+    (
+        "tartalmu_sentence",
+        r"\b([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+(?:-[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+)+)\s+tartalmú\b",
+    ),
+]
 
 def text_of(node):
     return normalize_space(node.get_text(" ",strip=True)) if node else None
@@ -84,12 +142,30 @@ def _fold_text(value):
     normalized=unicodedata.normalize("NFKD",normalize_space(value).lower())
     return "".join(ch for ch in normalized if not unicodedata.combining(ch))
 
-def manual_active_ingredient_override(name,url):
-    haystack=_fold_text(" ".join(x for x in [name,url] if x))
-    for needle,value in MANUAL_ACTIVE_INGREDIENT_OVERRIDES.items():
-        if needle in haystack:
-            return value
-    return None
+def _product_name_signature_tokens(name):
+    tokens=re.findall(r"[a-z0-9]+",_fold_text(name))
+    out=[]
+    for token in tokens:
+        if token in PRODUCT_NAME_STOP_TOKENS:
+            continue
+        if token.isdigit() or re.fullmatch(r"\d+[a-z]?",token):
+            continue
+        if len(token)<3:
+            continue
+        out.append(token)
+    return unique_keep_order(out)
+
+def active_candidate_mentions_other_product(context,product_name):
+    tokens=_product_name_signature_tokens(product_name)
+    if len(tokens)<2:
+        return False
+    source=_fold_text(context)
+    if tokens[0] not in source:
+        return False
+    variants=[t for t in tokens[1:] if t in PRODUCT_VARIANT_TOKENS or len(t)>4]
+    if not variants:
+        return False
+    return not any(t in source for t in variants)
 
 def _decode_json_string(value):
     if value is None:
@@ -309,38 +385,174 @@ def clean_active_ingredient_value(value):
     value=re.sub(r"\s+(tasakonként|tablettánként|kapszulánként|ml-enként)\.?$","",value,flags=re.I)
     return normalize_space(value) or None
 
-def extract_active_ingredient_fallback(text):
+def active_candidate_is_noisy(value):
+    if not value:
+        return True
+    return bool(re.search(
+        r"\b(?:segédanyag|egyéb\s+összetev(?:ő|ők)|nem\s+alkalmazható|"
+        r"ellenjavallat|allergiás|további\s+információ|olvassa\s+el|"
+        r"forgalomba\s+hozatali|gyártó|szállítási\s+információk)\b",
+        value,
+        re.I,
+    ))
+
+def _active_candidate(raw_value,source,context=None,product_name=None):
+    value=clean_active_ingredient_value(raw_value)
+    if not value:
+        return None
+    if value.lower().startswith(("keressen","a keresett")):
+        return None
+    if product_name and active_candidate_mentions_other_product(context or value,product_name):
+        return None
+    if active_candidate_is_noisy(value):
+        return None
+    ingredient_names=split_ingredient_names(value)
+    if not ingredient_names:
+        return None
+    return {
+        "value":value,
+        "source":source,
+        "ingredient_count":len(ingredient_names),
+    }
+
+def _extract_active_ingredient_from_text(text,source_prefix,product_name=None):
     if not text:
         return None
     source=normalize_space(text)
-    patterns=[
-        r"\bA\s+hatóanyagok\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetevők\b|$)",
-        r"\bA\s+hatóanyag\s+(?:az?|a)\s+(.+?)(?=\.|;|\bAz\s+\w+|\bEgyéb\s+összetevők\b|$)",
-        r"\bÖsszetevők\s+listája\s*:\s*(.+?)(?=\bBetegtájékoztató\b|\bTermékleírás\b|$)",
-        r"\bMit\s+tartalmaz\s+(?:az|a)\s+[^?]{2,180}\?\s*-?\s*(.+?)(?=\bEgyéb\s+összetevők\b|\bMilyen\b|\bA\s+forgalomba\b|$)",
-        r"\bA\s+készítmény\s+hatóanyagai\b\s*:?\s*(.+?)(?=\bEgyéb\s+összetevők\b|\bIsmert\s+hatású\s+segédanyagok\b|\bMilyen\b|$)",
-        r"\bA\s+készítmény\s+hatóanyaga\b\s*(?::|az?\s+)\s*([^.;]{2,220})",
-        r"\bhatóanyaga\b\s+az?\s+([^,.;]{2,180})",
-        r"\bhatóanyag(?:ok)?\s*:\s*([^.;]{2,220})",
-        r"\b([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+(?:-[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+)+)\s+tartalmú\b",
-    ]
-    for pattern in patterns:
-        m=re.search(pattern,source,re.I)
-        if not m:
-            continue
-        value=clean_active_ingredient_value(m.group(1)[:2200])
-        if value and not value.lower().startswith(("keressen","a keresett")):
-            return value
+    for pattern_name,pattern in ACTIVE_TEXT_PATTERNS:
+        for m in re.finditer(pattern,source,re.I):
+            context=source[max(0,m.start()-100):min(len(source),m.end()+180)]
+            candidate=_active_candidate(
+                m.group(1)[:2200],
+                f"{source_prefix}_{pattern_name}",
+                context=context,
+                product_name=product_name,
+            )
+            if candidate:
+                return candidate
     return None
 
-def should_prefer_active_ingredient_fallback(current,candidate):
+def _iter_json_text_values(value):
+    if isinstance(value,str):
+        yield value
+    elif isinstance(value,dict):
+        if value.get("name"):
+            yield str(value["name"])
+        for child in value.values():
+            yield from _iter_json_text_values(child)
+    elif isinstance(value,list):
+        for child in value:
+            yield from _iter_json_text_values(child)
+
+def extract_json_active_ingredient(json_ld,product_name=None):
+    for node in _walk_json(json_ld):
+        if not isinstance(node,dict):
+            continue
+        for key,value in node.items():
+            key_folded=_fold_text(key).replace("_","").replace("-","")
+            if key_folded not in {"activeingredient","activeingredients","hatoanyag","hatoanyagok"}:
+                continue
+            for text_value in _iter_json_text_values(value):
+                candidate=_active_candidate(
+                    text_value,
+                    "json_ld",
+                    context=text_value,
+                    product_name=product_name,
+                )
+                if candidate:
+                    return candidate
+    return None
+
+def _candidate_is_detailed_upgrade(current,candidate):
     if not current or not candidate:
         return False
-    current_names=split_ingredient_names(current)
-    candidate_names=split_ingredient_names(candidate)
-    return len(candidate_names)>=3 and len(candidate_names)>len(current_names)
+    if not (
+        candidate["source"].startswith(("leaflet_","usage_instruction_"))
+        or candidate["source"].endswith(("_mit_tartalmaz","_keszitmeny_hatoanyagai"))
+    ):
+        return False
+    return (
+        candidate["ingredient_count"]>=3
+        and candidate["ingredient_count"]>current["ingredient_count"]
+    )
 
-def extract_product_metadata(text):
+def extract_active_ingredient(text,product_name=None,json_ld=None):
+    candidates=[]
+
+    structured_raw=_extract_after_label(
+        text,
+        r"Hatóanyag(?:ok)?",
+        stop_markers=ACTIVE_FIELD_STOP_MARKERS,
+        max_chars=2200,
+        require_colon=True,
+    )
+    structured=_active_candidate(structured_raw,"structured_hatany")
+    if structured:
+        candidates.append(structured)
+
+    json_candidate=extract_json_active_ingredient(json_ld or [],product_name=product_name)
+    if json_candidate:
+        candidates.append(json_candidate)
+
+    info,description=extract_product_info(text)
+    leaflet,leaflet_source_prefix=extract_leaflet_section(text)
+    for section_text,source_prefix in [
+        (leaflet,leaflet_source_prefix or "leaflet"),
+        (info,"product_information"),
+        (description,"description"),
+    ]:
+        candidate=_extract_active_ingredient_from_text(
+            section_text,
+            source_prefix,
+            product_name=product_name,
+        )
+        if candidate:
+            candidates.append(candidate)
+
+    composition_raw=_extract_after_label(
+        text,
+        r"Összetétel",
+        stop_markers=ACTIVE_COMPOSITION_STOP_MARKERS,
+        max_chars=700,
+        require_colon=True,
+    )
+    composition=_active_candidate(composition_raw,"composition")
+    if composition:
+        candidates.append(composition)
+
+    fallback=_extract_active_ingredient_from_text(
+        text,
+        "fallback",
+        product_name=product_name,
+    )
+    if fallback:
+        candidates.append(fallback)
+
+    selected=None
+    for candidate in candidates:
+        if selected is None:
+            selected=candidate
+        elif _candidate_is_detailed_upgrade(selected,candidate):
+            selected=candidate
+
+    if selected:
+        return selected["value"],selected["source"]
+    return None,None
+
+def extract_active_ingredient_fallback(text,product_name=None):
+    candidate=_extract_active_ingredient_from_text(
+        text,
+        "fallback",
+        product_name=product_name,
+    )
+    return candidate["value"] if candidate else None
+
+def should_prefer_active_ingredient_fallback(current,candidate):
+    current_candidate=_active_candidate(current,"current")
+    fallback_candidate=_active_candidate(candidate,"leaflet_fallback")
+    return _candidate_is_detailed_upgrade(current_candidate,fallback_candidate)
+
+def extract_product_metadata(text,product_name=None,json_ld=None):
     # We deliberately only inspect the first metadata block. On current BENU
     # pages it appears before the shipping section and before repeated product
     # recommendations.
@@ -348,30 +560,11 @@ def extract_product_metadata(text):
     classification,known_raw=_classify_raw(classification_fragment)
     classification_raw=known_raw if known_raw else classification_fragment
 
-    active_raw=_extract_after_label(
+    active_raw,active_source=extract_active_ingredient(
         text,
-        r"Hatóanyag(?:ok)?",
-        stop_markers=[
-            "Segédanyagok","A segédanyagok","Ismert hatású segédanyagok",
-            "További információ","Nem alkalmazható","Ellenjavallat",
-        ],
-        max_chars=2200,
-        require_colon=True,
+        product_name=product_name,
+        json_ld=json_ld,
     )
-    fallback_active_raw=extract_active_ingredient_fallback(text)
-    if should_prefer_active_ingredient_fallback(active_raw,fallback_active_raw):
-        active_raw=fallback_active_raw
-    elif not active_raw:
-        active_raw=fallback_active_raw
-    if not active_raw:
-        active_raw=_extract_after_label(
-            text,
-            r"Összetétel",
-            stop_markers=["Ismert hatású segédanyagok","Segédanyagok","Adagolás"],
-            max_chars=700,
-            require_colon=True,
-        )
-    active_raw=clean_active_ingredient_value(active_raw)
 
     distributor=(
         _extract_after_label(text,r"Forgalmazó",max_chars=800,require_colon=True)
@@ -386,6 +579,7 @@ def extract_product_metadata(text):
         "classification_raw":classification_raw,
         "classification":classification,
         "active_ingredient_raw":active_raw,
+        "active_ingredient_source":active_source,
         "distributor":distributor,
         "ean":ean,
     }
@@ -481,26 +675,33 @@ def extract_product_info(text):
     )
     return info,description
 
-def extract_leaflet(text):
+def extract_leaflet_section(text):
     markers=[
-        "Betegtájékoztató: Információk a felhasználó számára",
-        "Betegtájékoztató: Információk a beteg számára",
+        ("leaflet","Betegtájékoztató: Információk a felhasználó számára"),
+        ("leaflet","Betegtájékoztató: Információk a beteg számára"),
+        ("usage_instruction","Használati utasítás"),
+        ("usage_instruction","Használati útmutató"),
+        ("leaflet","Betegtájékoztató"),
     ]
     positions=[]
-    for marker in markers:
+    for source,marker in markers:
         m=re.search(re.escape(marker),text,re.I)
         if m:
-            positions.append(m.start())
+            positions.append((m.start(),source))
     if not positions:
-        return None
-    start=min(positions)
+        return None,None
+    start,source_prefix=min(positions,key=lambda item:item[0])
     # Stop before shipping/recommendation/footer repetition if possible.
     end=len(text)
     for marker in ["Szállítási információk","Customer Reviews","Hirdetés","Footer"]:
         m=re.search(re.escape(marker),text[start:],re.I)
         if m:
             end=min(end,start+m.start())
-    return normalize_space(text[start:end])[:300000]
+    return normalize_space(text[start:end])[:300000],source_prefix
+
+def extract_leaflet(text):
+    section,_source_prefix=extract_leaflet_section(text)
+    return section
 
 def extract_sku(text):
     m=re.search(r"\bCikkszám\s*:\s*([A-Za-z0-9_-]+)",text,re.I)
@@ -776,7 +977,7 @@ def parse_product(html,url,base_url):
     if not name:
         raise ValueError("Product name not found")
 
-    metadata=extract_product_metadata(ptext)
+    metadata=extract_product_metadata(ptext,product_name=name,json_ld=json_ld)
     initial_sku=jp.get("sku") or extract_sku(ptext)
     analytics_item=analytics_product_item(soup,name,initial_sku)
     badges=extract_product_badges(soup)
@@ -819,9 +1020,6 @@ def parse_product(html,url,base_url):
         metadata["classification"]="NON_MEDICINE"
         metadata["classification_raw"]="Vitamin category without medicine leaflet signal"
         classification_source="vitamin_category_without_medicine_signal"
-    manual_active_raw=manual_active_ingredient_override(name,url)
-    if manual_active_raw:
-        metadata["active_ingredient_raw"]=manual_active_raw
     strength,form,package=extract_form_and_strength(name,metadata["active_ingredient_raw"])
     sku=initial_sku or normalize_space(analytics_item.get("sku"))
     ean=metadata["ean"] or _json_gtin(jp) or extract_shopify_barcode(html,name,sku)
@@ -841,6 +1039,7 @@ def parse_product(html,url,base_url):
         "original_price_huf":prices["original_price_huf"],
         "sale_price_huf":prices["sale_price_huf"],
         "active_ingredient_raw":metadata["active_ingredient_raw"],
+        "active_ingredient_source":metadata["active_ingredient_source"],
         "ingredient_names":split_ingredient_names(metadata["active_ingredient_raw"]),
         "strength":strength,
         "pharmaceutical_form":form,

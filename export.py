@@ -1,7 +1,7 @@
 import csv
 import json
 from pathlib import Path
-from scraper.db import SessionLocal,Product,Ingredient,ProductIngredient
+from scraper.db import SessionLocal,Product,Ingredient,ProductIngredient,init_db
 
 OUT=Path("data/exports")
 OUT.mkdir(parents=True,exist_ok=True)
@@ -22,6 +22,7 @@ def row(p):
         "original_price_huf":p.original_price_huf,
         "sale_price_huf":p.sale_price_huf,
         "active_ingredient_raw":p.active_ingredient_raw,
+        "active_ingredient_source":getattr(p,"active_ingredient_source",None),
         "strength":p.strength,
         "pharmaceutical_form":p.pharmaceutical_form,
         "package_size":p.package_size,
@@ -41,6 +42,8 @@ def row(p):
         "last_seen_at":p.last_seen_at.isoformat() if p.last_seen_at else None,
         "last_changed_at":p.last_changed_at.isoformat() if p.last_changed_at else None,
     }
+
+init_db()
 
 with SessionLocal() as session:
     products=session.query(Product).order_by(Product.name).all()

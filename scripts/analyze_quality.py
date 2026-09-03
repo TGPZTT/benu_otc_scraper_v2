@@ -82,6 +82,9 @@ def main():
     cur = con.cursor()
 
     products = rows(cur, "select * from products order by name")
+    has_active_source = bool(products) and "active_ingredient_source" in products[0]
+    for p in products:
+        p.setdefault("active_ingredient_source", None)
     otc = [p for p in products if p["classification"] == "OTC"]
     prices = [p["price_huf"] for p in products if p["price_huf"] is not None]
     high_cutoff = percentile(prices, 0.95)
@@ -114,6 +117,7 @@ def main():
             "price_huf": p["price_huf"],
             "sku": p["sku"],
             "ean": p["ean"],
+            "active_ingredient_source": p["active_ingredient_source"],
             "warnings": load_json(p["parse_warnings_json"], []),
         }
         for p in products
@@ -180,6 +184,7 @@ def main():
     ]
     review_needles = ["vitamin", "gumivitamin"]
     otc_false_positive_candidates = []
+    otc_data_quality_candidates = []
     for p in otc:
         breadcrumbs = " > ".join(load_json(p["breadcrumbs_json"], []))
         haystack = " ".join(
@@ -190,29 +195,44 @@ def main():
                 p["classification_source"] or "",
             ]
         )
-        reasons = []
+        classification_reasons = []
+        quality_reasons = []
         medicine_confirmed = has_medicine_signal(p["raw_text"])
         if contains_any(haystack, non_medicine_needles) and not medicine_confirmed:
-            reasons.append("non_medicine_keyword")
+            classification_reasons.append("non_medicine_keyword")
         if (
             p["classification_source"] != "metadata"
             and contains_any(haystack, review_needles)
             and not medicine_confirmed
         ):
-            reasons.append("vitamin_category_review")
+            classification_reasons.append("vitamin_category_review")
         if not (p["active_ingredient_raw"] or "").strip():
-            reasons.append("missing_active_ingredient")
+            quality_reasons.append("missing_active_ingredient")
         if p["classification_source"] == "analytics_item_type" and not medicine_confirmed:
-            reasons.append("analytics_only_otc")
-        if reasons:
+            classification_reasons.append("analytics_only_otc")
+        if classification_reasons:
             otc_false_positive_candidates.append(
                 {
                     "name": p["name"],
                     "source": p["classification_source"],
                     "raw": p["classification_raw"],
                     "breadcrumbs": breadcrumbs,
+                    "active_ingredient_source": p["active_ingredient_source"],
                     "active_ingredient_preview": preview(p["active_ingredient_raw"]),
-                    "reasons": reasons,
+                    "reasons": classification_reasons,
+                    "url": p["url"],
+                }
+            )
+        if quality_reasons:
+            otc_data_quality_candidates.append(
+                {
+                    "name": p["name"],
+                    "source": p["classification_source"],
+                    "raw": p["classification_raw"],
+                    "breadcrumbs": breadcrumbs,
+                    "active_ingredient_source": p["active_ingredient_source"],
+                    "active_ingredient_preview": preview(p["active_ingredient_raw"]),
+                    "reasons": quality_reasons,
                     "url": p["url"],
                 }
             )
@@ -230,6 +250,7 @@ def main():
         join ingredients i on i.id = pi.ingredient_id
         where length(i.name) > 70
            or lower(i.name) like 'ha %'
+           or lower(i.name) like '%egyéb összetevő%'
            or lower(i.name) like '%segédanyag%'
            or lower(i.name) like '%további információ%'
            or lower(i.name) like '%nem alkalmazható%'
@@ -251,6 +272,23 @@ def main():
         "classification_source": dict(
             Counter(p["classification_source"] for p in products).most_common()
         ),
+        "active_ingredient_source_available": has_active_source,
+        "active_ingredient_source": {
+            "all": dict(
+                Counter(
+                    (p["active_ingredient_source"] or "legacy_unknown")
+                    for p in products
+                    if (p["active_ingredient_raw"] or "").strip()
+                ).most_common()
+            ),
+            "otc": dict(
+                Counter(
+                    (p["active_ingredient_source"] or "legacy_unknown")
+                    for p in otc
+                    if (p["active_ingredient_raw"] or "").strip()
+                ).most_common()
+            ),
+        },
         "exports": export_counts,
         "missing": missing,
         "warning_counts": dict(warning_counts.most_common()),
@@ -265,6 +303,7 @@ def main():
             "high_outliers": high_price_rows[:10],
         },
         "otc_false_positive_candidates": otc_false_positive_candidates,
+        "otc_data_quality_candidates": otc_data_quality_candidates,
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
 

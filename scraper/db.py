@@ -33,6 +33,7 @@ class Product(Base):
     sale_price_huf=Column(Integer)
 
     active_ingredient_raw=Column(Text)
+    active_ingredient_source=Column(String(100))
     strength=Column(String(500))
     pharmaceutical_form=Column(String(300))
     package_size=Column(String(200))
@@ -127,6 +128,7 @@ def ensure_schema():
         columns={row[1] for row in conn.exec_driver_sql("PRAGMA table_info(products)")}
         additions={
             "classification_source":"ALTER TABLE products ADD COLUMN classification_source VARCHAR(100) DEFAULT 'unknown'",
+            "active_ingredient_source":"ALTER TABLE products ADD COLUMN active_ingredient_source VARCHAR(100)",
             "parse_warnings_json":"ALTER TABLE products ADD COLUMN parse_warnings_json TEXT",
             "is_incomplete":"ALTER TABLE products ADD COLUMN is_incomplete BOOLEAN NOT NULL DEFAULT 0",
         }
@@ -175,7 +177,8 @@ def upsert_product(session,data):
         "name","brand","sku","ean","classification","classification_raw",
         "classification_source",
         "price_huf","unit_price","lowest_30d_price_huf","original_price_huf",
-        "sale_price_huf","active_ingredient_raw","strength","pharmaceutical_form",
+        "sale_price_huf","active_ingredient_raw","active_ingredient_source",
+        "strength","pharmaceutical_form",
         "package_size","product_information","description","leaflet_text",
         "distributor","manufacturer","registration_number","json_ld","raw_text",
         "raw_html_hash","is_incomplete"
