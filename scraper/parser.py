@@ -43,6 +43,12 @@ ACTIVE_STOP_PATTERN=(
     r"A\s+gyógyszer\s+gyermekektől|Szállítási\s+információk|EAN)\b"
 )
 
+MANUAL_ACTIVE_INGREDIENT_OVERRIDES={
+    # BENU currently exposes a mismatched Algopyrin 500 text block on this Trio
+    # page, so a generic "tartalmú" fallback would understate the combination.
+    "algopyrin-trio":"400 mg metamizol-nátrium, 60 mg koffein, 40 mg drotaverin-hidroklorid",
+}
+
 def text_of(node):
     return normalize_space(node.get_text(" ",strip=True)) if node else None
 
@@ -77,6 +83,13 @@ def _fold_text(value):
         return ""
     normalized=unicodedata.normalize("NFKD",normalize_space(value).lower())
     return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+def manual_active_ingredient_override(name,url):
+    haystack=_fold_text(" ".join(x for x in [name,url] if x))
+    for needle,value in MANUAL_ACTIVE_INGREDIENT_OVERRIDES.items():
+        if needle in haystack:
+            return value
+    return None
 
 def _decode_json_string(value):
     if value is None:
@@ -806,6 +819,9 @@ def parse_product(html,url,base_url):
         metadata["classification"]="NON_MEDICINE"
         metadata["classification_raw"]="Vitamin category without medicine leaflet signal"
         classification_source="vitamin_category_without_medicine_signal"
+    manual_active_raw=manual_active_ingredient_override(name,url)
+    if manual_active_raw:
+        metadata["active_ingredient_raw"]=manual_active_raw
     strength,form,package=extract_form_and_strength(name,metadata["active_ingredient_raw"])
     sku=initial_sku or normalize_space(analytics_item.get("sku"))
     ean=metadata["ean"] or _json_gtin(jp) or extract_shopify_barcode(html,name,sku)

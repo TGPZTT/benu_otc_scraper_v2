@@ -309,7 +309,7 @@ def test_active_ingredients_from_mit_tartalmaz_section():
     assert "Egyéb összetevők" not in data["active_ingredient_raw"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
-def test_active_ingredient_from_tartalmu_sentence():
+def test_algopyrin_trio_manual_override_beats_mismatched_product_info():
     html="""
     <html><head><title>Algopyrin Trio teszt</title></head><body>
     <product-info>
@@ -325,9 +325,9 @@ def test_active_ingredient_from_tartalmu_sentence():
     </product-info>
     </body></html>
     """
-    data=parse_product(html,"https://benu.hu/products/algopyrin-trio-teszt","https://benu.hu")
-    assert data["active_ingredient_raw"]=="metamizol-nátrium-monohidrát"
-    assert data["ingredient_names"]==["metamizol-nátrium-monohidrát"]
+    data=parse_product(html,"https://benu.hu/products/algopyrin-trio-tabletta-quarelin","https://benu.hu")
+    assert data["active_ingredient_raw"]=="400 mg metamizol-nátrium, 60 mg koffein, 40 mg drotaverin-hidroklorid"
+    assert data["ingredient_names"]==["metamizol-nátrium","koffein","drotaverin-hidroklorid"]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
 def test_detailed_leaflet_ingredients_override_generic_vitamin_metadata():
