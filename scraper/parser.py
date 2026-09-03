@@ -48,13 +48,20 @@ ACTIVE_STOP_PATTERN=(
 PRODUCT_NAME_STOP_TOKENS={
     "mg","ml","g","db","x","filmtabletta","tabletta","kapszula","lagy",
     "bevont","oldatos","orrspray","szuszpenzio","granulatum","kenocs",
-    "krem","gel","csepp","szopogato","rago","belsoleges",
+    "krem","gel","csepp","szopogato","rago","belsoleges","gyogyszeres",
+    "koromlakk","szemcsepp","illoolajos",
 }
 
 PRODUCT_VARIANT_TOKENS={
     "trio","duo","plus","cold","rapid","forte","dolo","kid","junior",
-    "extra","max","senior",
+    "extra","max","senior","ultra","comfort","classic","original",
+    "mentolos","mentollal",
 }
+
+UNIT_PRICE_UNIT_PATTERN=(
+    r"(?:filmtabletta|pezsgőtabletta|rágótabletta|tabletta|kapszula|"
+    r"ampulla|tasak|darab|adag|csomag|pár|db|ml|kg|g|l)"
+)
 
 ACTIVE_FIELD_STOP_MARKERS=[
     "Segédanyagok","Segédanyag","A segédanyagok","Egyéb összetevők",
@@ -159,13 +166,13 @@ def active_candidate_mentions_other_product(context,product_name):
     tokens=_product_name_signature_tokens(product_name)
     if len(tokens)<2:
         return False
-    source=_fold_text(context)
-    if tokens[0] not in source:
+    source_tokens=set(re.findall(r"[a-z0-9]+",_fold_text(context)))
+    if tokens[0] not in source_tokens:
         return False
-    variants=[t for t in tokens[1:] if t in PRODUCT_VARIANT_TOKENS or len(t)>4]
+    variants=[t for t in tokens[1:] if t in PRODUCT_VARIANT_TOKENS]
     if not variants:
         return False
-    return not any(t in source for t in variants)
+    return not any(t in source_tokens for t in variants)
 
 def _decode_json_string(value):
     if value is None:
@@ -619,7 +626,8 @@ def extract_main_prices(text):
 
     # The exact unit-price label following the main price.
     um=re.search(
-        r"Egységár\s*:?\s*([0-9][\d\s.]*(?:,\d+)?)\s*Ft\s*/\s*([^\n|]+)",
+        r"Egységár\s*:?\s*([0-9][\d\s.]*(?:,\d+)?)\s*Ft\s*/\s*"
+        r"("+UNIT_PRICE_UNIT_PATTERN+r")\b",
         block,re.I|re.S
     )
     if um:
@@ -780,6 +788,15 @@ def is_vitamin_category(breadcrumbs):
     breadcrumb_text=_fold_text(" ".join(breadcrumbs or []))
     return "vitamin" in breadcrumb_text or "multivitamin" in breadcrumb_text
 
+def is_formula_product(name,breadcrumbs):
+    source=_fold_text(" ".join([name or ""]+list(breadcrumbs or []))).replace("-"," ")
+    return any(token in source for token in [
+        "tapszer",
+        "anyatej kiegeszito",
+        "tejalapu italpor",
+        "tejalapu tapszer",
+    ])
+
 def has_medicine_leaflet_signal(text):
     folded=_fold_text(text)
     signals=[
@@ -890,6 +907,33 @@ def extract_statuses(text,badges=None):
             statuses.append(phrase)
     return unique_keep_order(statuses)
 
+def split_herbal_extract_names(active_raw):
+    source=normalize_space(active_raw)
+    m=re.search(
+        r"(?:következő|kovetkezo)\s+növényekből\s*:\s*(.+?)"
+        r"(?=\s+\d+\s*(?::\s*\d+){1,}\s+arányban|\bKivon[óo]szer\b|$)",
+        source,
+        re.I,
+    )
+    if not m:
+        return []
+    fragment=m.group(1)
+    names=[]
+    for match in re.finditer(
+        r"(?:^|,\s*)"
+        r"([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]"
+        r"[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű\s\-]{2,80}?)"
+        r"\s*\((?=[a-záéíóöőúüű])",
+        fragment,
+        re.I,
+    ):
+        name=normalize_space(match.group(1)).strip(" ,.;:-")
+        name=re.sub(r"^(?:és|illetve)\s+","",name,flags=re.I)
+        folded=_fold_text(name)
+        if folded and not re.search(r"\b(?:folium|radix|rhizoma|extractum)\b",folded):
+            names.append(name)
+    return unique_keep_order(names)
+
 def split_ingredient_names(active_raw):
     if not active_raw:
         return []
@@ -897,6 +941,9 @@ def split_ingredient_names(active_raw):
     s=clean_active_ingredient_value(active_raw)
     if not s:
         return []
+    herbal_names=split_herbal_extract_names(s)
+    if herbal_names:
+        return herbal_names
     first_sentence=re.split(r"\.\s+",s,1)[0]
     if first_sentence:
         s=first_sentence
@@ -909,7 +956,7 @@ def split_ingredient_names(active_raw):
     s=re.sub(r"\b(?:tasakban|tablettában|filmtablettában|kapszulában|pezsgőtablettában|rágótablettában|befújásnyi|befújás|lemosható\s+kenőcsben)\b","",s,flags=re.I)
     s=re.sub(r"\b\d+(?:[.,]\d+)?\b","",s)
     s=re.sub(r"\b(?:gyomornedv-ellenálló|bevont|film|filmtabletta|tabletta|lágy|kapszula|krém|szuszpenzió|oldatos|orrspray|gél|kenőcs)\b","",s,flags=re.I)
-    s=re.sub(r"\b(?:egy|gramm|készítmény|hatóanyaga|hatóanyagai|hatóanyagok?|tartalmú|tartalmaz|tartalmaz\.|van)\b","",s,flags=re.I)
+    s=re.sub(r"\b(?:egy|gramm|készítmény|hatóanyaga|hatóanyagai|hatóanyagok?|tartalma|tartalmú|tartalmaz|tartalmaz\.|van)\b","",s,flags=re.I)
     parts=re.split(r"\s+\+\s+|\s+és\s+|\s+ill\.\s+|\s+illetve\s+|;|,",s,flags=re.I)
     out=[]
     for part in parts:
@@ -1012,6 +1059,10 @@ def parse_product(html,url,base_url):
         metadata["classification"]="NON_MEDICINE"
         metadata["classification_raw"]="Homeopátiás készítmények"
         classification_source="homeopathic_category"
+    elif metadata["classification"]=="OTC" and is_formula_product(name,breadcrumbs):
+        metadata["classification"]="NON_MEDICINE"
+        metadata["classification_raw"]="Formula/tápszer category"
+        classification_source="formula_category"
     elif (
         metadata["classification"]=="OTC"
         and is_vitamin_category(breadcrumbs)
@@ -1023,6 +1074,11 @@ def parse_product(html,url,base_url):
     strength,form,package=extract_form_and_strength(name,metadata["active_ingredient_raw"])
     sku=initial_sku or normalize_space(analytics_item.get("sku"))
     ean=metadata["ean"] or _json_gtin(jp) or extract_shopify_barcode(html,name,sku)
+    ingredient_names=(
+        split_ingredient_names(metadata["active_ingredient_raw"])
+        if metadata["classification"]=="OTC"
+        else []
+    )
 
     data={
         "url":url,
@@ -1040,7 +1096,7 @@ def parse_product(html,url,base_url):
         "sale_price_huf":prices["sale_price_huf"],
         "active_ingredient_raw":metadata["active_ingredient_raw"],
         "active_ingredient_source":metadata["active_ingredient_source"],
-        "ingredient_names":split_ingredient_names(metadata["active_ingredient_raw"]),
+        "ingredient_names":ingredient_names,
         "strength":strength,
         "pharmaceutical_form":form,
         "package_size":package,
@@ -1057,6 +1113,5 @@ def parse_product(html,url,base_url):
         "raw_html_hash":__import__("hashlib").sha256(html.encode("utf-8",errors="ignore")).hexdigest(),
         "json_ld":json.dumps(json_ld,ensure_ascii=False),
     }
-    data["ingredient_names"]=split_ingredient_names(data["active_ingredient_raw"])
     data["is_incomplete"],data["parse_warnings"]=assess_quality(data)
     return data

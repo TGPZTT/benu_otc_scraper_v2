@@ -35,6 +35,31 @@ def test_price_block():
     assert p["unit_price"]=="170 Ft / ml"
     assert p["lowest_30d_price_huf"]==4999
 
+def test_unit_price_does_not_swallow_following_discount_label():
+    text="""
+    Internetes ár
+    19 229 Ft
+    Egységár:
+    641 Ft /
+    Az elmúlt 30 nap legalacsonyabb ára:
+    18 999 Ft
+    """
+    p=extract_main_prices(text)
+    assert p["price_huf"]==19229
+    assert p["unit_price"] is None
+    assert p["lowest_30d_price_huf"]==18999
+
+def test_unit_price_does_not_accept_discount_percent_as_unit():
+    text="""
+    Internetes ár
+    16 799 Ft
+    Egységár:
+    218 Ft / 35%
+    """
+    p=extract_main_prices(text)
+    assert p["price_huf"]==16799
+    assert p["unit_price"] is None
+
 def test_sale_price():
     text="Internetes ár 4 499 Ft Eredeti ár 5 649 Ft helyett 4 499 Ft"
     p=extract_main_prices(text)
@@ -261,6 +286,33 @@ def test_vitamin_category_with_medicine_signal_stays_otc():
     assert data["classification"]=="OTC"
     assert data["classification_source"]=="product_badge"
 
+def test_formula_category_overrides_otc_badge():
+    html="""
+    <html><head><title>BEBA teszt</title></head><body>
+    <product-info>
+      <h1>BEBA OPTIpro Junior 3 anyatej-kiegészítő tápszer 12 hónapos kortól 600g</h1>
+      <div class="price__container">Internetes ár 5 999 Ft Egységár: 10 Ft / g</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>Termékinformáció Tejalapú anyatej-kiegészítő tápszer kisgyermekeknek.</div>
+    </product-info>
+    <script type="application/json" class="analytics-product-data">
+    {"items":[{
+      "item_name":"BEBA OPTIpro Junior 3 anyatej-kiegészítő tápszer 12 hónapos kortól 600g",
+      "sku":"123456",
+      "product_breadcrumbs":"Baba-mama > Tápszerek",
+      "item_type":"OTC"
+    }]}
+    </script>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/beba-teszt","https://benu.hu")
+    assert data["classification"]=="NON_MEDICINE"
+    assert data["classification_source"]=="formula_category"
+    assert data["ingredient_names"]==[]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
 def test_active_ingredients_from_leaflet_hatanyagok_sentence():
     html="""
     <html><head><title>Actifed teszt</title></head><body>
@@ -310,6 +362,63 @@ def test_active_ingredients_from_mit_tartalmaz_section():
     assert data["active_ingredient_raw"].startswith("417 NE A-vitamint")
     assert data["active_ingredient_source"]=="leaflet_mit_tartalmaz"
     assert "Egyéb összetevők" not in data["active_ingredient_raw"]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
+def test_shortened_leaflet_product_name_is_not_treated_as_other_variant():
+    html="""
+    <html><head><title>Amorolfin teszt</title></head><body>
+    <product-info>
+      <h1>Amorolfin-Teva 50 mg/ml gyógyszeres körömlakk 2,5ml</h1>
+      <div class="price__container">Internetes ár 6 999 Ft Egységár: 2 800 Ft / ml</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Betegtájékoztató
+        Mit tartalmaz az Amorolfin-Teva?
+        A készítmény hatóanyaga az amorolfin.
+        Az Amorolfin-Teva 1 millilitere 50 mg amorolfint tartalmaz.
+        Egyéb összetevők: metakrilát kopolimer.
+        EAN: 5999999999999
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/amorolfin-teva-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"].startswith("amorolfin")
+    assert data["active_ingredient_source"]=="leaflet_mit_tartalmaz"
+    assert data["ingredient_names"]==["amorolfin"]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
+def test_leaflet_mit_tartalmaz_handles_hatanyagai_list_with_form_content_prefix():
+    html="""
+    <html><head><title>Baby Luuf teszt</title></head><body>
+    <product-info>
+      <h1>Baby Luuf illóolajos kenőcs 30g</h1>
+      <div class="price__container">Internetes ár 3 999 Ft Egységár: 133 Ft / g</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Betegtájékoztató
+        Mit tartalmaz a Baby Luuf kenőcs?
+        - A készítmény hatóanyagai: 1 g kenőcs tartalma:
+        40 mg tengerparti fenyőből származó terpentinolaj,
+        15 mg eukaliptuszolaj,
+        10 mg kakukkfűolaj.
+        - Egyéb összetevők: kemény paraffin, fehér vazelin.
+        EAN: 5999999999999
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/baby-luuf-teszt","https://benu.hu")
+    assert data["active_ingredient_source"]=="leaflet_mit_tartalmaz"
+    assert data["ingredient_names"]==[
+        "tengerparti fenyőből származó terpentinolaj",
+        "eukaliptuszolaj",
+        "kakukkfűolaj",
+    ]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
 def test_tartalmu_fallback_ignores_mismatched_product_info():
@@ -486,6 +595,21 @@ def test_ingredient_names_drop_excipients_and_warnings():
     assert split_ingredient_names(
         "2 mg mangán ‑szulfát‑monohidrát formájában, 15 mg cink-szulfát-monohidrát formájában."
     ) == ["mangán","cink"]
+    assert split_ingredient_names(
+        "1 ml (~0,918 g) belsőleges folyadék tartalma: 1 ml etanolos kivonat "
+        "(1:9,75) a következő növényekből: gyömbér gyökértörzs "
+        "(zingiber officinale roscoe, rhizoma), igazi édesgyökér "
+        "(glycirrhiza glabra L. radix), orvosi citromfű levél "
+        "(melissa officinalis L., folium), zöld tealevél "
+        "(camellia sinensis L., folium, jávai kurkuma gyökértörzs "
+        "(curcuma xanthorrhiza roxb., rhizoma) 8:4:4:3:1 arányban."
+    ) == [
+        "gyömbér gyökértörzs",
+        "igazi édesgyökér",
+        "orvosi citromfű levél",
+        "zöld tealevél",
+        "jávai kurkuma gyökértörzs",
+    ]
 
 def test_info_description():
     text="Termékinformáció Ez a termékinformáció. Termékleírás Ez a részletes leírás. Betegtájékoztató"

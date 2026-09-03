@@ -181,6 +181,12 @@ def main():
         "tesztcsík",
         "merő",
         "mérő",
+        "tapszer",
+        "tápszer",
+        "anyatej",
+        "tejalapu",
+        "tejalapú",
+        "italpor",
     ]
     review_needles = ["vitamin", "gumivitamin"]
     otc_false_positive_candidates = []
