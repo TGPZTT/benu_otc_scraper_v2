@@ -19,6 +19,10 @@ def rows(cur, sql, params=()):
 def count_csv(path):
     if not path.exists():
         return None
+    try:
+        csv.field_size_limit(sys.maxsize)
+    except OverflowError:
+        csv.field_size_limit(2_147_483_647)
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         return sum(1 for _ in csv.DictReader(handle))
 
@@ -272,6 +276,8 @@ def main():
            or lower(i.name) like '%segédanyag%'
            or lower(i.name) like '%további információ%'
            or lower(i.name) like '%nem alkalmazható%'
+           or lower(i.name) like '%hagyományos növényi%'
+           or lower(i.name) like '%javallat%'
         order by length(i.name) desc, p.name
         """,
     )

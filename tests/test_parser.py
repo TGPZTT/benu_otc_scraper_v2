@@ -470,6 +470,28 @@ def test_leaflet_mit_tartalmaz_handles_hatanyagai_list_with_form_content_prefix(
     ]
     assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
 
+def test_active_ingredient_stops_before_herbal_medicine_boilerplate():
+    html="""
+    <html><head><title>Bronchostop Trio teszt</title></head><body>
+    <product-info>
+      <h1>Bronchostop Trio megfázás elleni belsőleges oldat 120ml</h1>
+      <div class="price__container">Internetes ár 4 099 Ft Egységár: 34 Ft / ml</div>
+      <div class="product-badges">
+        <div class="badge">Vény nélkül kapható gyógyszer</div>
+      </div>
+      <div>
+        Hatóanyag: orvosi ziliz gyökér, lándzsás útifű és hársvirág"Hagyományos növényi gyógyszer.
+        A javallatokra való alkalmazása kizárólag a régóta fennálló használaton alapul.
+        EAN: 5999999999999
+      </div>
+    </product-info>
+    </body></html>
+    """
+    data=parse_product(html,"https://benu.hu/products/bronchostop-trio-teszt","https://benu.hu")
+    assert data["active_ingredient_raw"]=="orvosi ziliz gyökér, lándzsás útifű és hársvirág"
+    assert data["ingredient_names"]==["orvosi ziliz gyökér","lándzsás útifű","hársvirág"]
+    assert "missing_active_ingredient_for_otc" not in data["parse_warnings"]
+
 def test_tartalmu_fallback_ignores_mismatched_product_info():
     html="""
     <html><head><title>Algopyrin Trio teszt</title></head><body>

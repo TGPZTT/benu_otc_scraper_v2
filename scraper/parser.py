@@ -43,6 +43,7 @@ ACTIVE_STOP_PATTERN=(
     r"Nem\s+alkalmazható|Ellenjavallat|Alkalmazás|Adagolás|"
     r"Használat\s+előtt|Az\s+érintett|Milyen\s+az?|A\s+forgalomba|"
     r"A\s+készítmény\s+külleme|Bevonat|A\s+gyógyszer\s+gyermekektől|"
+    r"Hagyományos\s+növényi\s+gyógyszer|A\s+javallatokra\s+való|"
     r"Szállítási\s+információk|EAN)\b"
 )
 
@@ -399,6 +400,7 @@ def clean_active_ingredient_value(value):
         value,
         flags=re.I,
     )
+    value=value.strip(" \"'“”„")
     return normalize_space(value) or None
 
 def active_candidate_is_noisy(value):
@@ -407,6 +409,7 @@ def active_candidate_is_noisy(value):
     return bool(re.search(
         r"\b(?:segédanyag|egyéb\s+összetev(?:ő|ők)|nem\s+alkalmazható|"
         r"ellenjavallat|allergiás|további\s+információ|olvassa\s+el|"
+        r"hagyományos\s+növényi\s+gyógyszer|javallatokra\s+való|"
         r"forgalomba\s+hozatali|gyártó|szállítási\s+információk)\b",
         value,
         re.I,
