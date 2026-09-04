@@ -10,6 +10,9 @@ from pathlib import Path
 
 DB_PATH = Path("data/benu_otc.db")
 EXPORT_DIR = Path("data/exports")
+RAW_HTML_DIR = Path("data/raw_html")
+INCOMPLETE_HTML_DIR = Path("data/incomplete_html")
+FAILED_HTML_DIR = Path("data/failed_html")
 
 
 def rows(cur, sql, params=()):
@@ -25,6 +28,12 @@ def count_csv(path):
         csv.field_size_limit(2_147_483_647)
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         return sum(1 for _ in csv.DictReader(handle))
+
+
+def count_gzip_html(path):
+    if not path.exists():
+        return 0
+    return sum(1 for _ in path.glob("*.html.gz"))
 
 
 def load_json(value, default):
@@ -64,6 +73,52 @@ def preview(value, limit=180):
     if len(value) <= limit:
         return value or None
     return value[: limit - 3].rstrip() + "..."
+
+
+def normalized_quality_candidates(path):
+    if not path.exists():
+        return []
+    bad_terms = {
+        "nem adható": "contraindication_text",
+        "túlérzékenység": "contraindication_text",
+        "fájdalom": "effect_text",
+        "lázcsillapító": "effect_text",
+        "forgalmazza": "distributor_text",
+        "frogalmazza": "distributor_text",
+        "berlin-chemie": "distributor_text",
+        "csaknem fehér": "appearance_text",
+        "szabadon folyó": "appearance_text",
+        "aggregátum": "appearance_text",
+        "fehér vazelin": "excipient_text",
+        "kivonószer": "extraction_solvent_text",
+    }
+    try:
+        csv.field_size_limit(sys.maxsize)
+    except OverflowError:
+        csv.field_size_limit(2_147_483_647)
+    candidates = []
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            display = row.get("ingredient_display") or ""
+            raw = row.get("active_ingredient_raw") or ""
+            haystack = f"{display} {raw}".casefold()
+            reasons = []
+            for term, reason in bad_terms.items():
+                if term in haystack and reason not in reasons:
+                    reasons.append(reason)
+            if reasons:
+                candidates.append(
+                    {
+                        "name": row.get("name"),
+                        "ingredient_display": display,
+                        "strength_display": row.get("strength_display"),
+                        "active_ingredient_source": row.get("active_ingredient_source"),
+                        "active_ingredient_preview": preview(raw),
+                        "reasons": reasons,
+                        "url": row.get("url"),
+                    }
+                )
+    return candidates
 
 
 def percentile(values, pct):
@@ -271,13 +326,40 @@ def main():
         join product_ingredients pi on pi.product_id = p.id
         join ingredients i on i.id = pi.ingredient_id
         where length(i.name) > 70
+           or lower(i.name) in ('tiszta', 'ill', 'ké', 'két', 'nevű', 'nevu')
            or lower(i.name) like 'ha %'
+           or lower(i.name) like 'minden %'
            or lower(i.name) like '%egyéb összetevő%'
            or lower(i.name) like '%segédanyag%'
            or lower(i.name) like '%további információ%'
            or lower(i.name) like '%nem alkalmazható%'
+           or lower(i.name) like '%nem adható%'
+           or lower(i.name) like '%túlérzékenység%'
            or lower(i.name) like '%hagyományos növényi%'
            or lower(i.name) like '%javallat%'
+           or lower(i.name) like '%fájdalom%'
+           or lower(i.name) like '%lázcsillapító%'
+           or lower(i.name) like '%forgalmazza%'
+           or lower(i.name) like '%frogalmazza%'
+           or lower(i.name) like '%berlin-chemie%'
+           or lower(i.name) like '%csaknem fehér%'
+           or lower(i.name) like '%szabadon folyó%'
+           or lower(i.name) like '%aggregátum%'
+           or lower(i.name) like '%fehér vazelin%'
+           or lower(i.name) like '%kivonószer%'
+           or lower(i.name) like '%azon összetevője%'
+           or lower(i.name) like '%szopogató%'
+           or lower(i.name) like '%szájnyálkahártyán%'
+           or lower(i.name) like '%alkalmazott%'
+           or lower(i.name) like '%alkalmazható%'
+           or lower(i.name) like '%spray-ben%'
+           or lower(i.name) like '%színű%'
+           or lower(i.name) like '%szagú%'
+           or lower(i.name) like '%vérszin%'
+           or lower(i.name) like '%kalciumürítés%'
+           or lower(i.name) like '%atrtalmaz%'
+           or lower(i.name) like '%frakciót%'
+           or lower(i.name) like '%a következő növényi kivonatok%'
         order by length(i.name) desc, p.name
         """,
     )
@@ -286,6 +368,30 @@ def main():
         "products.csv": count_csv(EXPORT_DIR / "products.csv"),
         "otc_products.csv": count_csv(EXPORT_DIR / "otc_products.csv"),
         "ingredients.csv": count_csv(EXPORT_DIR / "ingredients.csv"),
+        "normalized_otc_products.csv": count_csv(
+            EXPORT_DIR / "normalized_otc_products.csv"
+        ),
+        "comparison_groups.csv": count_csv(EXPORT_DIR / "comparison_groups.csv"),
+    }
+    normalized_candidates = normalized_quality_candidates(
+        EXPORT_DIR / "normalized_otc_products.csv"
+    )
+
+    html_cache_counts = {
+        "raw_html": count_gzip_html(RAW_HTML_DIR),
+        "incomplete_html": count_gzip_html(INCOMPLETE_HTML_DIR),
+        "failed_html": count_gzip_html(FAILED_HTML_DIR),
+    }
+
+    quality_gates = {
+        "unknown_zero": Counter(p["classification"] for p in products).get("UNKNOWN", 0) == 0,
+        "failed_html_zero": html_cache_counts["failed_html"] == 0,
+        "otc_false_positive_zero": len(otc_false_positive_candidates) == 0,
+        "bad_ingredient_zero": len(bad_ingredients) == 0,
+        "otc_missing_price_zero": missing["otc"]["price"] == 0,
+        "otc_missing_sku_zero": missing["otc"]["sku"] == 0,
+        "otc_missing_active_zero": missing["otc"]["active_ingredient"] == 0,
+        "normalized_bad_ingredient_zero": len(normalized_candidates) == 0,
     }
 
     report = {
@@ -314,12 +420,18 @@ def main():
             ),
         },
         "exports": export_counts,
+        "html_cache": html_cache_counts,
+        "quality_gates": quality_gates,
         "missing": missing,
         "warning_counts": dict(warning_counts.most_common()),
         "incomplete": incomplete,
         "ingredient_quality": {
             "bad_ingredient_count": len(bad_ingredients),
             "bad_ingredients": bad_ingredients[:20],
+        },
+        "normalized_quality": {
+            "suspicious_count": len(normalized_candidates),
+            "suspicious_rows": normalized_candidates[:20],
         },
         "suspicious_prices": {
             "invalid_rules": invalid_price_rows,

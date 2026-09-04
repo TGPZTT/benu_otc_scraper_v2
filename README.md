@@ -148,13 +148,87 @@ data/exports/ingredients.csv
 python scripts/analyze_quality.py
 ```
 
-Ez nem indít scrapinget, csak a meglévő `data/benu_otc.db` és `data/exports` fájlokat olvassa. Összesíti a besorolásokat, forrásokat, hiányzó mezőket, incomplete rekordokat, gyanús árakat és OTC false positive jelölteket.
+Ez nem indít scrapinget, csak a meglévő `data/benu_otc.db`, `data/exports` és HTML cache mappákat olvassa. Összesíti a besorolásokat, forrásokat, hiányzó mezőket, incomplete rekordokat, gyanús árakat, HTML cache darabszámokat, quality gate státuszokat és OTC false positive jelölteket.
+
+## Cache-ből újraparszolás
+
+Ha a parseren javítasz, nem kell újra letölteni a BENU oldalait. A mentett HTML cache-ből újra lehet építeni a DB termékmezőit és az ingredient kapcsolatokat:
+
+```powershell
+python scripts/reparse_cached_html.py --progress-every 250 --sync-incomplete-html
+python export.py
+python scripts/analyze_quality.py
+```
+
+A `--sync-incomplete-html` újragenerálja a `data/incomplete_html/` mappát az aktuális minőségi szabályok szerint, így nem maradnak benne korábbi parserverzióból származó téves incomplete HTML-ek.
+
+## Kurált adatpótlás
+
+Néhány BENU termékoldal nem tartalmaz saját hatóanyagblokkot, vagy a mentett HTML-ben félrevezető betegtájékoztató-részlet szerepel. Ezeket nem parser-kivétellel, hanem auditálható referenciafájlból pótoljuk:
+
+```powershell
+python scripts/apply_curated_enrichment.py --dry-run
+python scripts/apply_curated_enrichment.py --sync-incomplete-html
+```
+
+A forrásfájl:
+
+```text
+reference/curated_product_enrichment.json
+```
+
+Ez URL alapján tölti fel a kurált `active_ingredient_raw`, `active_ingredient_source`, `registration_number` és ingredient kapcsolatokat, majd eltávolítja a megoldott `missing_active_ingredient_for_otc` figyelmeztetést. A dry-run nem írja át a DB-t.
+
+## Normalizált összehasonlító katalógus
+
+A webapp nem közvetlenül a nyers scraper exportból dolgozik, hanem egy normalizált OTC katalógusból:
+
+```powershell
+python scripts/build_normalized_catalog.py
+```
+
+Létrejön:
+
+```text
+data/exports/normalized_otc_products.csv
+data/exports/normalized_otc_products.json
+data/exports/comparison_groups.csv
+data/exports/comparison_groups.json
+data/exports/grouped_catalog.json
+```
+
+A csoportosítás kulcsa: normalizált hatóanyag-kombináció + erősség + gyógyszerforma + összehasonlítási egység. A listaárból vagy BENU egységárból számolt egységár alapján jelöli a legolcsóbb terméket az azonos csoporton belül.
+
+## Adatlezárás scrape nélkül
+
+Ha már megvan a teljes `data/raw_html/` cache és nem akarsz új BENU letöltést indítani, ezt a sorrendet futtasd:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\reparse_cached_html.py --progress-every 500 --commit-every 500 --sync-incomplete-html
+.\.venv\Scripts\python.exe scripts\apply_curated_enrichment.py --sync-incomplete-html
+.\.venv\Scripts\python.exe export.py
+.\.venv\Scripts\python.exe scripts\build_normalized_catalog.py
+.\.venv\Scripts\python.exe scripts\analyze_quality.py > data\exports\quality_report.json
+Get-Content data\exports\quality_report.json -Raw
+```
+
+Ez csak lokális fájlokból dolgozik: meglévő HTML-cache, SQLite DB, exportok és referenciafájl. Nem hívja meg a BENU oldalt.
+
+Future refresh ellenőrzőlista:
+
+- legyen Git checkpoint a futás előtt
+- kis mintán futtasd: `python main.py --fresh --limit 50`
+- ha tiszta: teljes frissítés csak saját gépen: `python main.py --fresh --all`
+- utána cache reparse + kurált adatpótlás + export + quality riport + normalizált katalógus
+- elvárt kapuk: `processed == discovered`, `errors == 0`, `failed_html == 0`, `UNKNOWN == 0`, OTC false positive `0`, bad ingredient `0`, OTC ár/SKU hiány `0`
+- EAN-hiány maradhat figyelmeztetés, ha a BENU oldalon nincs termék-EAN / JSON-LD `gtin` / illeszkedő Shopify `barcode`
 
 ## Hibakezelés
 
 A `classification` mező adatbázis-szinten kötelező, de a scraper mindig `UNKNOWN` értéket használ, ha a BENU oldalon nem található megbízható besorolás. Így egyetlen atipikus oldal sem okoz `NOT NULL constraint failed` hibát.
 
-A futás végén az összesítő tartalmazza az `incomplete` darabszámot is. Ez olyan oldalt jelent, ahol a név megvan, de legalább egy kritikus mező hiányzik vagy a parser rövid/gyanús oldalt kapott. A hiányossági jelzések a `parse_warnings` exportmezőben is látszanak. Az ilyen oldalak HTML-je `data/incomplete_html/` alá is bekerül, a tényleges feldolgozási kivételek HTML-je pedig `data/failed_html/` alatt kerül mentésre.
+A futás végén az összesítő tartalmazza az `incomplete` darabszámot is. Ez olyan oldalt jelent, ahol a név megvan, de legalább egy kritikus mező hiányzik vagy a parser rövid/gyanús oldalt kapott. Kritikus hiány az ár, SKU, ismeretlen besorolás, OTC rekordnál hiányzó hatóanyag, illetve a gyanúsan rövid nyers oldal-szöveg. A hiányzó EAN külön figyelmeztetés, de önmagában nem teszi inkompletté a rekordot, mert a BENU több termékoldalon nem ad termék-EAN-t. A hiányossági jelzések a `parse_warnings` exportmezőben is látszanak. Az ilyen oldalak HTML-je `data/incomplete_html/` alá is bekerül, a tényleges feldolgozási kivételek HTML-je pedig `data/failed_html/` alatt kerül mentésre.
 
 ## EAN források
 

@@ -1,0 +1,379 @@
+{
+  "schema_version": 1,
+  "description": "Curated, source-backed corrections applied after cache reparse. These are not parser rules; they are auditable product data enrichments for BENU product URLs where the cached BENU page is missing or exposes misleading active ingredient text.",
+  "products": [
+    {
+      "url": "https://benu.hu/products/algopyrin-trio-tabletta-quarelin",
+      "match_name": "Algopyrin Trio tabletta 20 db",
+      "active_ingredient_raw": "400 mg metamizol-nátrium, 60 mg koffein és 40 mg drotaverin-hidroklorid tablettánként",
+      "ingredient_names": [
+        "metamizol-nátrium",
+        "koffein",
+        "drotaverin-hidroklorid"
+      ],
+      "active_ingredient_source": "curated_ogyei_label",
+      "registration_number": "OGYI-T-03467",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D16151",
+        "https://www.patikaradar.hu/cimkeszovegek/algopyrin-trio-tabletta-8f746ca66185/"
+      ],
+      "evidence_note": "OGYÉI/NNGYK active ingredients and OGYÉI-origin label text: 400 mg metamizol-nátrium, 60 mg koffein, 40 mg drotaverin-hidroklorid."
+    },
+    {
+      "url": "https://benu.hu/products/wick-angimed-szopogato-tabletta-mez-24x",
+      "match_name": "Angimed méz szopogató tabletta 24 db",
+      "active_ingredient_raw": "5 mg klórhexidin-dihidroklorid és 1 mg lidokain-hidroklorid-monohidrát szopogató tablettánként",
+      "ingredient_names": [
+        "klórhexidin-dihidroklorid",
+        "lidokain-hidroklorid-monohidrát"
+      ],
+      "active_ingredient_source": "curated_ogyei_sibling_leaflet",
+      "registration_number": "OGYI-T-22994",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D155951"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists chlorhexidine hydrochloride and lidocaine hydrochloride; dose text matches the local BENU Angimed citrom/mentol sibling leaflet parse."
+    },
+    {
+      "url": "https://benu.hu/products/espumisan-forte-240mg-lagy-kapszula-20-db",
+      "match_name": "Espumisan Forte 240mg lágy kapszula 20 db",
+      "active_ingredient_raw": "240 mg szimetikon lágy kapszulánként",
+      "ingredient_names": [
+        "szimetikon"
+      ],
+      "active_ingredient_source": "curated_ogyei",
+      "registration_number": "OGYI-T-24419",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D235815"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists simeticone for Espumisan Forte 240 mg lágy kapszula."
+    },
+    {
+      "url": "https://benu.hu/products/gaviscon-forte-borsmenta-izu-belsoleges-szuszpenzio-300ml",
+      "match_name": "Gaviscon forte borsmenta ízű belsőleges szuszpenzió 300ml",
+      "active_ingredient_raw": "500 mg nátrium-alginát, 213 mg nátrium-hidrogén-karbonát és 325 mg kalcium-karbonát 10 ml-enként",
+      "ingredient_names": [
+        "nátrium-alginát",
+        "nátrium-hidrogén-karbonát",
+        "kalcium-karbonát"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-21299",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D226967",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/gaviscon_forte_borsmenta_izu_belsoleges_szuszpenzio_tasakban/57894"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists sodium alginate, sodium hydrogen carbonate and calcium carbonate; leaflet source gives 500/213/325 mg per 10 ml."
+    },
+    {
+      "url": "https://benu.hu/products/gaviscon-forte-borsmenta-izu-belsoleges-szuszpenzio-tasakban-24x10ml",
+      "match_name": "Gaviscon forte borsmenta ízű belsőleges szuszpenzió tasakban 24x10ml",
+      "active_ingredient_raw": "500 mg nátrium-alginát, 213 mg nátrium-hidrogén-karbonát és 325 mg kalcium-karbonát 10 ml-es tasakonként",
+      "ingredient_names": [
+        "nátrium-alginát",
+        "nátrium-hidrogén-karbonát",
+        "kalcium-karbonát"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-21299",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D55336",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/gaviscon_forte_borsmenta_izu_belsoleges_szuszpenzio_tasakban/57894"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists sodium alginate, sodium hydrogen carbonate and calcium carbonate; leaflet source gives 500/213/325 mg per 10 ml sachet."
+    },
+    {
+      "url": "https://benu.hu/products/gaviscon-forte-borsmenta-izu-ragotabletta-24-db",
+      "match_name": "Gaviscon forte borsmenta ízű rágótabletta 24 db",
+      "active_ingredient_raw": "250 mg nátrium-alginát, 106,5 mg nátrium-hidrogén-karbonát és 187,5 mg kalcium-karbonát rágótablettánként",
+      "ingredient_names": [
+        "nátrium-alginát",
+        "nátrium-hidrogén-karbonát",
+        "kalcium-karbonát"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-21299",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D219310",
+        "https://medgo.hu/gyogyszerek/gaviscon-forte-borsmenta-izu-ragotabletta"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists sodium alginate, sodium hydrogen carbonate and calcium carbonate; OGYÉI-origin leaflet text gives 250/106.5/187.5 mg per chewable tablet."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-hexaherba-belsoleges-oldatos-cseppek-20ml",
+      "match_name": "Iberogast Hexaherba belsőleges oldatos cseppek 20ml",
+      "active_ingredient_raw": "1 ml folyadék folyékony kivonatai: keserű tatárvirág 0,15 ml, kamillavirágzat 0,30 ml, köménytermés 0,20 ml, orvosi citromfű levél 0,15 ml, borsmenta levél 0,10 ml, igazi édesgyökér 0,10 ml",
+      "ingredient_names": [
+        "keserű tatárvirág",
+        "kamillavirágzat",
+        "köménytermés",
+        "orvosi citromfű levél",
+        "borsmenta levél",
+        "igazi édesgyökér"
+      ],
+      "active_ingredient_source": "curated_ogyei_benu_sibling",
+      "registration_number": "OGYI-T-24462",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D214759",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_hexaherba_belsoleges_oldatos_cseppek/66555"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists herbal extracts for the 20/50/100 ml Hexaherba packs; detailed plant list matches the local BENU 100 ml sibling page and public leaflet sources."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-hexaherba-belsoleges-oldatos-cseppek-50ml",
+      "match_name": "Iberogast Hexaherba belsőleges oldatos cseppek 50ml",
+      "active_ingredient_raw": "1 ml folyadék folyékony kivonatai: keserű tatárvirág 0,15 ml, kamillavirágzat 0,30 ml, köménytermés 0,20 ml, orvosi citromfű levél 0,15 ml, borsmenta levél 0,10 ml, igazi édesgyökér 0,10 ml",
+      "ingredient_names": [
+        "keserű tatárvirág",
+        "kamillavirágzat",
+        "köménytermés",
+        "orvosi citromfű levél",
+        "borsmenta levél",
+        "igazi édesgyökér"
+      ],
+      "active_ingredient_source": "curated_ogyei_benu_sibling",
+      "registration_number": "OGYI-T-24462",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D214759",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_hexaherba_belsoleges_oldatos_cseppek/66555"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists herbal extracts for the 20/50/100 ml Hexaherba packs; detailed plant list matches the local BENU 100 ml sibling page and public leaflet sources."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-belsoleges-oldatos-cseppek-20",
+      "match_name": "Iberogast emésztési panaszok széles spektrumára 20ml",
+      "active_ingredient_raw": "9 féle gyógynövénykivonat: borsmenta levél, angyalgyökér, köménytermés, máriatövis-termés, orvosi citromfű levél, vérehulló fecskefű, igazi édesgyökér, keserű tatárvirág, kamillavirágzat",
+      "ingredient_names": [
+        "borsmenta levél",
+        "angyalgyökér",
+        "köménytermés",
+        "máriatövis-termés",
+        "orvosi citromfű levél",
+        "vérehulló fecskefű",
+        "igazi édesgyökér",
+        "keserű tatárvirág",
+        "kamillavirágzat"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-20701",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D27618",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_nonaherba_belsoleges_oldatos_cseppek/66972"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists Iberogast Nonaherba herbal extracts; public leaflet/drug database sources list the 9 plant extracts."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-belsoleges-oldatos-cseppek-20ml",
+      "match_name": "Iberogast belsőleges oldatos cseppek 20ml",
+      "active_ingredient_raw": "9 féle gyógynövénykivonat: borsmenta levél, angyalgyökér, köménytermés, máriatövis-termés, orvosi citromfű levél, vérehulló fecskefű, igazi édesgyökér, keserű tatárvirág, kamillavirágzat",
+      "ingredient_names": [
+        "borsmenta levél",
+        "angyalgyökér",
+        "köménytermés",
+        "máriatövis-termés",
+        "orvosi citromfű levél",
+        "vérehulló fecskefű",
+        "igazi édesgyökér",
+        "keserű tatárvirág",
+        "kamillavirágzat"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-20701",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D27618",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_nonaherba_belsoleges_oldatos_cseppek/66972"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists Iberogast Nonaherba herbal extracts; public leaflet/drug database sources list the 9 plant extracts."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-belsoleges-oldatos-cseppek-06-50ml",
+      "match_name": "Iberogast emésztési panaszok széles spektrumára 50ml",
+      "active_ingredient_raw": "9 féle gyógynövénykivonat: borsmenta levél, angyalgyökér, köménytermés, máriatövis-termés, orvosi citromfű levél, vérehulló fecskefű, igazi édesgyökér, keserű tatárvirág, kamillavirágzat",
+      "ingredient_names": [
+        "borsmenta levél",
+        "angyalgyökér",
+        "köménytermés",
+        "máriatövis-termés",
+        "orvosi citromfű levél",
+        "vérehulló fecskefű",
+        "igazi édesgyökér",
+        "keserű tatárvirág",
+        "kamillavirágzat"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-20701",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D27618",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_nonaherba_belsoleges_oldatos_cseppek/66972"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists Iberogast Nonaherba herbal extracts; public leaflet/drug database sources list the 9 plant extracts."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-belsoleges-oldatos-cseppek-50ml",
+      "match_name": "Iberogast belsőleges oldatos cseppek 50ml",
+      "active_ingredient_raw": "9 féle gyógynövénykivonat: borsmenta levél, angyalgyökér, köménytermés, máriatövis-termés, orvosi citromfű levél, vérehulló fecskefű, igazi édesgyökér, keserű tatárvirág, kamillavirágzat",
+      "ingredient_names": [
+        "borsmenta levél",
+        "angyalgyökér",
+        "köménytermés",
+        "máriatövis-termés",
+        "orvosi citromfű levél",
+        "vérehulló fecskefű",
+        "igazi édesgyökér",
+        "keserű tatárvirág",
+        "kamillavirágzat"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-20701",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D27618",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_nonaherba_belsoleges_oldatos_cseppek/66972"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists Iberogast Nonaherba herbal extracts; public leaflet/drug database sources list the 9 plant extracts."
+    },
+    {
+      "url": "https://benu.hu/products/iberogast-belsoleges-oldatos-cseppek-100ml",
+      "match_name": "Iberogast emésztési panaszok széles spektrumára 100ml",
+      "active_ingredient_raw": "9 féle gyógynövénykivonat: borsmenta levél, angyalgyökér, köménytermés, máriatövis-termés, orvosi citromfű levél, vérehulló fecskefű, igazi édesgyökér, keserű tatárvirág, kamillavirágzat",
+      "ingredient_names": [
+        "borsmenta levél",
+        "angyalgyökér",
+        "köménytermés",
+        "máriatövis-termés",
+        "orvosi citromfű levél",
+        "vérehulló fecskefű",
+        "igazi édesgyökér",
+        "keserű tatárvirág",
+        "kamillavirágzat"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-20701",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D27618",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/iberogast_nonaherba_belsoleges_oldatos_cseppek/66972"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists Iberogast Nonaherba herbal extracts; public leaflet/drug database sources list the 9 plant extracts."
+    },
+    {
+      "url": "https://benu.hu/products/lipobase-krem-100g",
+      "match_name": "Lipobase krém 100g",
+      "active_ingredient_raw": "paraffin",
+      "ingredient_names": [
+        "paraffin"
+      ],
+      "active_ingredient_source": "curated_ogyei",
+      "registration_number": "OGYI-T-05059",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D13508"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists paraffin for Lipobase krém."
+    },
+    {
+      "url": "https://benu.hu/products/neurogerlon-neo-40-mg-90-mg-0-25-mg-filmtabletta-20-db",
+      "match_name": "Neurogerlon Neo 40 mg/90 mg/0,25 mg filmtabletta 20 db",
+      "active_ingredient_raw": "40 mg benfotiamin, 90 mg piridoxin-hidroklorid és 0,25 mg cianokobalamin filmtablettánként",
+      "ingredient_names": [
+        "benfotiamin",
+        "piridoxin-hidroklorid",
+        "cianokobalamin"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-24705",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D240619",
+        "https://www.patikaradar.hu/alkalmazasi-eloirasok/neurogerlon-neo-40-mg-90-mg-0-25-mg-filmtabletta-5dd5d1a45e95/"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists benfotiamine, pyridoxine hydrochloride and cyanocobalamin; OGYÉI-origin SmPC text gives 40/90/0.25 mg per tablet."
+    },
+    {
+      "url": "https://benu.hu/products/spedifen-400-mg-filmtabletta-30-db",
+      "match_name": "Spedifen 400 mg filmtabletta 30 db",
+      "active_ingredient_raw": "400 mg ibuprofén filmtablettánként",
+      "ingredient_names": [
+        "ibuprofén"
+      ],
+      "active_ingredient_source": "curated_ogyei",
+      "registration_number": "OGYI-T-07162",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D21909"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists ibuprofen for Spedifen 400 mg filmtabletta."
+    },
+    {
+      "url": "https://benu.hu/products/spedifen-400mg-granulatum-30-db",
+      "match_name": "Spedifen 400mg granulátum 30 db",
+      "active_ingredient_raw": "400 mg ibuprofén (arginin só formájában) tasakonként",
+      "ingredient_names": [
+        "ibuprofén"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-07162",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D193065",
+        "https://www.webbeteg.hu/gyogyszerkereso/spedifen-400-mg/10422"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists ibuprofen for Spedifen 400 mg granulátum; public leaflet source gives 400 mg ibuprofén per sachet."
+    },
+    {
+      "url": "https://benu.hu/products/tantum-verde-citrom-3mg-szopogato-tabletta-20x",
+      "match_name": "Tantum Verde citrom 3mg szopogató tabletta 20 db",
+      "active_ingredient_raw": "3 mg benzidamin-hidroklorid szopogató tablettánként",
+      "ingredient_names": [
+        "benzidamin-hidroklorid"
+      ],
+      "active_ingredient_source": "curated_ogyei",
+      "registration_number": "OGYI-T-07594",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D24351"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists benzydamine for Tantum Verde Citrom 3 mg szopogató tabletta."
+    },
+    {
+      "url": "https://benu.hu/products/ambrosept-mint-20-mg-szopogato-tabletta",
+      "match_name": "Ambrosept Mint 20 mg szopogató tabletta 18 db",
+      "active_ingredient_raw": "20 mg ambroxol-hidroklorid szopogató tablettánként",
+      "ingredient_names": [
+        "ambroxol-hidroklorid"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-24088",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D219955",
+        "https://www.pharmindex-online.hu/termekek/ambrosept-mint-20-mg-szopogato-tabletta-65348"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists ambroxol hydrochloride; public leaflet source gives 20 mg ambroxol-hidroklorid per lozenge."
+    },
+    {
+      "url": "https://benu.hu/products/lolisept-3-mg-szopogato-tabletta-citrom-izu-24x",
+      "match_name": "Lolisept 3 mg szopogató tabletta citrom ízű 24 db",
+      "active_ingredient_raw": "3 mg benzidamin-hidroklorid szopogató tablettánként",
+      "ingredient_names": [
+        "benzidamin-hidroklorid"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-23137",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D132258",
+        "https://www.hazipatika.com/gyogyszerkereso/termek/lolisept_3_mg_citrom_izu_szopogato_tabletta/60716"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists benzydamine hydrochloride; public leaflet source confirms benzidamin-hidroklorid for Lolisept 3 mg lozenges."
+    },
+    {
+      "url": "https://benu.hu/products/neo-citran-max-koptetovel-oldathoz-por-belsoleges-10x",
+      "match_name": "Neo Citran Max köptetővel por belsőleges oldathoz 10 db",
+      "active_ingredient_raw": "1000 mg paracetamol, 12,2 mg fenilefrin-hidroklorid és 200 mg gvajfenezin tasakonként",
+      "ingredient_names": [
+        "paracetamol",
+        "fenilefrin-hidroklorid",
+        "gvajfenezin"
+      ],
+      "active_ingredient_source": "curated_ogyei_leaflet",
+      "registration_number": "OGYI-T-22745",
+      "evidence_urls": [
+        "https://ogyei.gov.hu/gyogyszeradatbazis%26action%3Dshow_details%26item%3D113029",
+        "https://www.gyogyszerwebaruhaz.hu/termekek/neo-citran-max-koptetovel-oldathoz-por-belsoleges"
+      ],
+      "evidence_note": "OGYÉI/NNGYK lists paracetamol, phenylephrine hydrochloride and guaifenesin; public leaflet text gives 1000/12.2/200 mg per sachet. The cached BENU text drops zeros in this dose line, so this is kept as curated data."
+    }
+  ]
+}
