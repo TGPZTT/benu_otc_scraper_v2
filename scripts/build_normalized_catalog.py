@@ -54,6 +54,9 @@ CANONICAL_INGREDIENT_ALIASES = {
     "chlorhexidine hydrochloride": "klórhexidin",
     "cianokobalamin": "cianokobalamin",
     "cyanocobalamin": "cianokobalamin",
+    "cetirizin-dihidroklorid": "cetirizin",
+    "cetirizin hexal a cetirizin-dihidroklorid": "cetirizin",
+    "cetirizin hexal cseppek a cetirizin-dihidroklorid": "cetirizin",
     "drotaverin-hidroklorid": "drotaverin",
     "drotaverine": "drotaverin",
     "drotaverine hydrochloride": "drotaverin",
@@ -68,6 +71,7 @@ CANONICAL_INGREDIENT_ALIASES = {
     "lidocaine hydrochloride": "lidokain",
     "lidokain-hidroklorid": "lidokain",
     "lidokain-hidroklorid-monohidrat": "lidokain",
+    "levocetirizin-dihidroklorid": "levocetirizin",
     "magnesium carbonate": "magnézium-karbonát",
     "magnesium hydroxide": "magnézium-hidroxid",
     "metamizol-natrium": "metamizol-nátrium",
@@ -220,6 +224,15 @@ def clean_ingredient_name(name):
     value = normalize_space(name or "")
     value = HYPHENS_RE.sub("-", value)
     value = value.replace("_", "-")
+    value = re.sub(r"^[•\-\s]+", "", value)
+    value = re.sub(
+        r"^(?:a|az)\s+(?:készítmény|gyógyszer|tabletta|filmtabletta|"
+        r"kapszula|krém|gél|kenőcs|oldat|csepp|fülcsepp|szemcsepp|"
+        r"orrspray|spray)\s+",
+        "",
+        value,
+        flags=re.I,
+    )
     value = re.sub(r"\b(?:Forgalmazza|Frogalmazza|Forgalmazó|Gyártó)\b.*$", "", value, flags=re.I)
     value = re.sub(r"\bkivonatát\b", "kivonat", value, flags=re.I)
     value = re.sub(
@@ -243,7 +256,7 @@ def clean_ingredient_name(name):
     value = re.sub(r"\bvízzel\s+lemosható\b.*$", "", value, flags=re.I)
     value = re.sub(r"^(?:kenőcsben|krémben|gélben|szirupban|hintőporban|porban)\s+", "", value, flags=re.I)
     value = re.sub(r"\btinktúrát\b", "tinktúra", value, flags=re.I)
-    value = re.sub(r"\b(?:szopogató|préselt|szájnyálkahártyán|alkalmazott|alkalmazható|spray-ben|spray|fogászati|krémben|gélben|kenőcsben|hüvelykrémben|szirupban|hintőporban|porban|oldatban|szuszpenzióban|hüvelykapszulánként|hüvelykapszula|hüvelykrém|tabletta|filmtabletta|kapszula|krém|gél|kenőcs|szirup|oldat|hatóanyag|hatóanyaga|hatóanyagai|tartalma|tartalmaz|tartalmazza)\b", "", value, flags=re.I)
+    value = re.sub(r"\b(?:szopogató|préselt|szájnyálkahártyán|alkalmazott|alkalmazható|spray-ben|spray|fogászati|krémben|gélben|kenőcsben|hüvelykrémben|szirupban|hintőporban|porban|oldatban|szuszpenzióban|hüvelykapszulánként|hüvelykapszula|hüvelykrém|tabletta|filmtabletta|kapszula|krém|gél|kenőcs|szirup|oldat|csepp|cseppek|fülcsepp|szemcsepp|orrspray|hatóanyag|hatóanyaga|hatóanyagai|tartalma|tartalmaz|tartalmazza)\b", "", value, flags=re.I)
     value = re.sub(r"(?:ot|et)\b", "", value, flags=re.I)
     value = re.sub(r"(?<=sav)at\b", "", value, flags=re.I)
     value = re.sub(r"(?<=ir)t\b", "", value, flags=re.I)
@@ -259,6 +272,12 @@ def canonical_ingredient(name):
     cleaned = clean_ingredient_name(name)
     key = fold_text(cleaned)
     key = re.sub(r"\s+", " ", key).strip()
+    if "levocetirizin" in key:
+        return "levocetirizin"
+    if "cetirizin" in key and "dihidroklorid" in key:
+        return "cetirizin"
+    if "azelasztin" in key and "hidroklorid" in key:
+        return "azelasztin"
     if "omega-3-sav-etileszter" in key:
         return "omega-3-sav-etilészterek"
     if (

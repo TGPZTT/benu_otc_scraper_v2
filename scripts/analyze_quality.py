@@ -101,7 +101,7 @@ def normalized_quality_candidates(path):
         for row in csv.DictReader(handle):
             display = row.get("ingredient_display") or ""
             raw = row.get("active_ingredient_raw") or ""
-            haystack = f"{display} {raw}".casefold()
+            haystack = display.casefold()
             reasons = []
             for term, reason in bad_terms.items():
                 if term in haystack and reason not in reasons:

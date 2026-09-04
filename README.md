@@ -199,6 +199,32 @@ data/exports/grouped_catalog.json
 
 A csoportosítás kulcsa: normalizált hatóanyag-kombináció + erősség + gyógyszerforma + összehasonlítási egység. A listaárból vagy BENU egységárból számolt egységár alapján jelöli a legolcsóbb terméket az azonos csoporton belül.
 
+## Lokális webapp
+
+Az első összehasonlító felület a `webapp/` mappában van. Nem igényel Node/npm telepítést, a meglévő exportot olvassa:
+
+```text
+data/exports/grouped_catalog.json
+```
+
+Indítás a projekt gyökeréből:
+
+```powershell
+.\.venv\Scripts\python.exe -m http.server 8000
+```
+
+Megnyitás böngészőben:
+
+```text
+http://localhost:8000/webapp/
+```
+
+Ha foglalt a 8000-es port, használj másikat, például:
+
+```powershell
+.\.venv\Scripts\python.exe -m http.server 8010
+```
+
 ## Adatlezárás scrape nélkül
 
 Ha már megvan a teljes `data/raw_html/` cache és nem akarsz új BENU letöltést indítani, ezt a sorrendet futtasd:

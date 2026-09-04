@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BENU OTC összehasonlító</title>
+    <meta
+      name="description"
+      content="Lokális BENU OTC gyógyszer-összehasonlító listaárak, hatóanyagok és egységárak alapján."
+    >
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>BENU OTC</h1>
+          <p id="datasetMeta">Adatok betöltése...</p>
+        </div>
+        <div class="topbar-note">
+          Listaárak alapján. Vásárlás előtt ellenőrizd a BENU aktuális oldalát.
+        </div>
+      </header>
+
+      <section class="controls" aria-label="Keresés és szűrés">
+        <label class="search-box">
+          <span>Keresés</span>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Hatóanyag, termék vagy panasz"
+            autocomplete="off"
+          >
+        </label>
+
+        <label>
+          <span>Kategória</span>
+          <select id="categorySelect">
+            <option value="">Minden kategória</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Rendezés</span>
+          <select id="sortSelect">
+            <option value="category">Kategória szerint</option>
+            <option value="family">Hatóanyagcsalád szerint</option>
+            <option value="savings">Legnagyobb árkülönbség</option>
+            <option value="unit">Legolcsóbb egységár</option>
+            <option value="count">Legtöbb készítmény</option>
+            <option value="name">Hatóanyag szerint</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Forma</span>
+          <select id="formSelect">
+            <option value="">Minden forma</option>
+          </select>
+        </label>
+
+        <label class="checkline">
+          <input id="onlySavings" type="checkbox">
+          <span>Csak ahol van olcsóbb alternatíva</span>
+        </label>
+      </section>
+
+      <main class="layout">
+        <aside class="sidebar" aria-label="Szűrők">
+          <div class="sidebar-head">
+            <strong>Szűrés</strong>
+            <button id="resetButton" type="button">Törlés</button>
+          </div>
+          <div id="activeFilters" class="active-filters"></div>
+          <h3>Kategóriák</h3>
+          <nav id="categoryList" class="category-list"></nav>
+          <h3>Hatóanyagok</h3>
+          <nav id="ingredientList" class="ingredient-list"></nav>
+        </aside>
+
+        <section class="content" aria-live="polite">
+          <div class="content-head">
+            <div>
+              <h2 id="resultTitle">Találatok</h2>
+              <p id="resultMeta"></p>
+            </div>
+            <div class="legend">
+              <span><i class="dot dot-best"></i> legolcsóbb</span>
+              <span><i class="dot dot-warn"></i> hiányzó EAN</span>
+            </div>
+          </div>
+
+          <div id="insightBox" class="insight-box"></div>
+          <div id="groupList" class="family-list"></div>
+          <div id="emptyState" class="empty-state" hidden>
+            Nincs találat erre a szűrésre.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="familyTemplate">
+      <article class="family">
+        <button class="family-summary" type="button">
+          <div class="family-main">
+            <strong class="family-title"></strong>
+            <span class="family-subtitle"></span>
+            <span class="family-purpose"></span>
+          </div>
+          <div class="family-price">
+            <strong class="family-price-range"></strong>
+            <span class="family-unit-range"></span>
+          </div>
+          <div class="saving-badge family-saving"></div>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="family-detail" hidden></div>
+      </article>
+    </template>
+
+    <template id="groupTemplate">
+      <article class="group">
+        <button class="group-summary" type="button">
+          <div class="group-main">
+            <strong class="group-title"></strong>
+            <span class="group-subtitle"></span>
+          </div>
+          <div class="group-price">
+            <strong class="price-range"></strong>
+            <span class="unit-range"></span>
+          </div>
+          <div class="saving-badge"></div>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="group-detail" hidden>
+          <div class="detail-note"></div>
+          <div class="product-table-wrap">
+            <table class="product-table">
+              <thead>
+                <tr>
+                  <th>Termék</th>
+                  <th>Kiszerelés</th>
+                  <th>Listaár</th>
+                  <th>Egységár</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

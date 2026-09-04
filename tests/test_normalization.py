@@ -33,6 +33,11 @@ def test_canonical_ingredient_aliases():
     assert canonical_ingredient("elölt baktériumkultúra-szuszpenziót") == "elölt E. coli baktériumkultúra"
     assert canonical_ingredient("omega‑3‑sav‑etilészterek omega‑3‑sav‑etilészter") == "omega-3-sav-etilészterek"
     assert canonical_ingredient("Ginkgo biloba L folium száraz beállított kivonata") == "páfrányfenyőlevél száraz kivonat"
+    assert canonical_ingredient("Cetirizin HEXAL cseppek a cetirizin-dihidroklorid") == "cetirizin"
+    assert canonical_ingredient("cetirizin-dihidroklorid") == "cetirizin"
+    assert canonical_ingredient("levocetirizin-dihidroklorid") == "levocetirizin"
+    assert canonical_ingredient("azelasztin-hidroklorid") == "azelasztin"
+    assert canonical_ingredient("• A fülcsepp fenazon") == "fenazon"
 
 
 def test_normalize_form():
