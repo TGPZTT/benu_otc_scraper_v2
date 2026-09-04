@@ -1162,6 +1162,10 @@ def test_ingredient_names_drop_excipients_and_warnings():
         "3 mg ambroxol-hidroklorid 1 ml szirupban"
     ) == ["ambroxol-hidroklorid"]
     assert split_ingredient_names(
+        "muskátligyökér (Pelargonium sidoides radix) szárított folyékony "
+        "kivonat (1:8-10) (EPs 7630) Kivonószer: 11 m/m% etanol."
+    ) == ["muskátligyökér folyékony kivonat"]
+    assert split_ingredient_names(
         "50 mg dexpantenol és 5 mg klórhexidin-dihidroklorid 1 g krémben"
     ) == ["dexpantenol","klórhexidin-dihidroklorid"]
     assert split_ingredient_names(

@@ -235,6 +235,7 @@ Ha már megvan a teljes `data/raw_html/` cache és nem akarsz új BENU letölté
 .\.venv\Scripts\python.exe scripts\apply_curated_enrichment.py --sync-incomplete-html
 .\.venv\Scripts\python.exe export.py
 .\.venv\Scripts\python.exe scripts\build_normalized_catalog.py
+.\.venv\Scripts\python.exe scripts\build_single_page.py
 .\.venv\Scripts\python.exe scripts\analyze_quality.py > data\exports\quality_report.json
 Get-Content data\exports\quality_report.json -Raw
 ```
@@ -306,3 +307,131 @@ A BENU oldal szerkezete változhat. Ha a BENU módosítja a HTML-t, a `scraper/p
 ## Jogi / üzemeltetési megjegyzés
 
 A futtatás előtt ellenőrizd a BENU aktuális robots.txt-jét, felhasználási feltételeit és az alkalmazandó jogszabályokat. A scraper szándékosan lassított, szekvenciális kéréseket használ, és alapból tiszteletben tartja a robots.txt tiltásait.
+
+
+## Egyfájlos HTML kimenet
+
+```powershell
+.\.venv\Scripts\python.exe scripts\build_single_page.py
+```
+
+Létrejön:
+
+```text
+data/exports/benu_otc.html
+```
+
+Ez egyetlen, önmagában megnyitható fájl: az adat be van ágyazva, nincs `fetch`,
+nem kell hozzá `http.server`. Duplakattintásra megnyílik, e-mailben elküldhető.
+A `webapp/` mappa megmarad a fejlesztéshez, de a megosztható kimenet ez a fájl.
+
+### Miben tér el a `webapp/` logikájától
+
+1. **Egységár újraszámolva.** A BENU saját `unit_price` mezője 34 terméknél
+   ellentmond a listaár / kiszerelés hányadosnak. A legdurvább eset a
+   `Strepfen 8,75 mg szopogató tabletta 24 db`, ahol a BENU 4 849 Ft/db-ot ír
+   202 Ft/db helyett — emiatt a régi csoportosításban a Dorifen 97,5%-kal
+   olcsóbbnak látszott, holott a valós különbség kb. 29%. Az oldal mindig a
+   listaár / kiszerelés értéket használja, a BENU-ét csak ellenőrzésre, és a
+   táblázatban jelöli, ahol a kettő eltér.
+
+2. **Márkafüggő megtakarítás.** A `savings_vs_max_unit_pct` 174 csoportjából
+   124-nél ugyanannak a készítménynek a nagy és a kis doboza állt a százalék
+   két végén (Octenisept 1000 ml vs 50 ml, Laevolac 1000 ml vs 100 ml). Az nem
+   generikus alternatíva. Az oldalon százalék csak akkor jelenik meg, ha a két
+   készítmény neve is más; az azonos márka nagyobb doboza külön
+   „kiszerelés-tipp".
+
+3. **Kiszerelés a névből.** A `Panactiv 100 mg/5 ml belsőleges szuszpenzió
+   100ml` kiszerelése 5 ml-nek olvasódott 100 ml helyett, mert a parser az
+   erősség nevezőjét vette kiszerelésnek. Az oldal az erősség-kifejezések
+   levágása után újraolvassa a nevet, és eltérés esetén a névből számol.
+
+4. **Félszilárd készítmények erőssége.** A `Dolgit gél 50g` erőssége
+   `1 g + 50 mg` formában jött, ami valójában 50 mg/g. A magyar alkalmazási
+   előírás így fogalmaz: „1 g krém 50 mg ibuprofént tartalmaz". Az oldal a
+   gél / krém / kenőcs formáknál ezt mg/g-ként értelmezi.
+
+5. **Bioekvivalens formák összevonva.** A tabletta, a filmtabletta és a bevont
+   tabletta egy blokk. A kapszula külön marad, mert a hatáskezdet más.
+
+6. **Kanonikus erősség-kulcs.** Egyhatóanyagú készítménynél a mg-érték a
+   csoportkulcs, így az `1%` és a `10 mg/g` nem esik szét két blokkra.
+
+7. **Épeszűségi korlát.** Ha egy blokkon belül a legolcsóbb és a legdrágább
+   egységár között több mint tízszeres a különbség, az oldal nem ír ki
+   százalékot — az ilyen szórás azonos erősségen belül adathibát jelez.
+
+### Visszavezetett normalizálási szabályok
+
+Ezek már nem csak az egyfájlos HTML-ben élnek, hanem a normál
+`scripts/build_normalized_catalog.py` exportfolyamat részei:
+
+- az egységár elsődlegesen `listaár / kiszerelés`; a BENU `unit_price` mezője
+  ellenőrző adatként marad meg
+- eltérés esetén a termék `unit_price_mismatch_vs_benu` quality flaget kap
+- a kiszerelés a `package_size` mezőből és a terméknévből is olvasódik; az
+  erősség nevezője nem írhatja felül a valódi dobozméretet
+- félszilárd készítményeknél az `1 g + 50 mg` jellegű erősség `50 mg/g`
+  formára normalizálódik
+- a csoportokban külön mező jelzi a más készítménynévvel szembeni megtakarítást
+  (`savings_vs_other_brand_pct`) és a saját nagyobb kiszerelés előnyét
+  (`pack_size_saving_pct`)
+- a tabletta, filmtabletta és bevont tabletta összevont forma, a kapszula külön
+  marad
+
+
+## Tudásréteg és a három nézet
+
+A `scripts/build_single_page.py` két kézzel karbantartott referenciafájlt is beolvas.
+Egyik sem a scraperből jön, ezért szerkeszthetők és auditálhatók:
+
+```text
+reference/ingredient_aliases.json    hatóanyag-kulcs kanonizálás + megjelenítendő nevek
+reference/knowledge_base.json        tünet -> hatóanyag ajánlás, indoklással és figyelmeztetéssel
+```
+
+### ingredient_aliases.json
+
+A parser néha a mondat körüli szavakat is bevonja a kulcsba
+(`ibuprofen-vegbelkuponken`), vagy ugyanazt a hatóanyagot két néven adja vissza
+(`diozmin` és `mikronizalt-diozmin`). Emiatt egy hatóanyag több csoportra esik
+szét, és nem talál rá a generikus alternatívára. Az alias-tábla ezt vezeti vissza
+a kanonikus kulcsra: jelenleg 92 terméknél, aminek nyomán 314 hatóanyag-kulcsból
+282 lett. A `display` szakasz adja a megjelenítendő nevet, ahol a nyers kulcs nem
+olvasható.
+
+Kizárólag azonos hatóanyagot szabad összevonni. Eltérő sóformát csak akkor, ha az
+adagolás egyenértékű.
+
+### knowledge_base.json
+
+26 panasz, panaszonként 1–6 hatóanyag-ajánlással. Minden ajánlás mezői:
+
+- `key` – a kanonizált `ingredient_key`
+- `role` – `first` (első választás), `alt` (alternatíva), `note` (jó tudni)
+- `why` – miért ez, egy-két mondatban
+- `caution` – mire kell figyelni
+
+A generátor kihagyja azt az ajánlást, aminek a kulcsa nincs meg az adatban, és a
+futás végén kiírja a hiányzó kulcsokat. Így a tudásréteg nem tud olyan
+hatóanyagra hivatkozni, ami nincs a katalógusban.
+
+### A három nézet
+
+- **Panasz szerint** – csempékből induló, tünet-alapú belépés. Panaszonként az
+  ajánlott hatóanyagok, mindegyiknél a legjobb egységárú készítmény, és lenyitva
+  az összes erősség és ár.
+- **Hatóanyag szerint** – a teljes katalógus, kategória- és alkategória-navigációval.
+- **Hol spórolhat** – csak a valódi, márkák közti árkülönbségek, csökkenő sorrendben.
+
+### Megjelenítési döntések
+
+- Az egységár a doboz egységére vonatkozik (Ft/db, Ft/ml, Ft/g). A mg-alapú
+  normalizálás a háttérben marad: egy blokkon belül az erősség azonos, ezért a
+  Ft/db sorrend ugyanaz, viszont a szám olvasható. A `Ft / g hatóanyag` szopogató
+  tablettánál 300 000 fölötti értékeket adott.
+- A sok komponensű készítményeknél az erősség nem a nyers
+  `0,5 mg + 1666 NE + 1,8 mg + ...` sorozat, hanem összetevőnként név + mennyiség
+  párokban jelenik meg. Ez 149 terméket érint.
+- Kombinációs készítmény nem áll szembe egyhatóanyagúval a megtakarítás-számításban.

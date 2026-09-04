@@ -1228,7 +1228,7 @@ def split_liquid_extract_names(active_raw):
         r"(?:\d+(?:[.,]\d+)?\s*(?:mg|g|µg|mcg)\s+)?"
         r"([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]"
         r"[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű\s\-]{2,120}?)"
-        r"\s*\([^)]{2,180}\)\s*folyékony\s+kivonat\b",
+        r"\s*\([^)]{2,180}\)\s*(?:szárított\s+)?folyékony\s+kivonat\b",
         source,
         re.I,
     ):
@@ -1350,6 +1350,7 @@ def split_ingredient_names(active_raw):
         part=re.sub(r"\b(?:az|a)\s*$","",part,flags=re.I)
         part=re.sub(r"\bazaz\b.*$","",part,flags=re.I)
         part=re.sub(r"\bvízzel\s+lemosható\b.*$","",part,flags=re.I)
+        part=re.sub(r"\bkivonószer\b.*$","",part,flags=re.I)
         part=re.sub(r"\b(vagy|ha|önnek|gyógyszer|allergiás|alkalmazható|olvassa|mellékelt|lásd)\b.*$","",part,flags=re.I)
         part=re.sub(r"^nikotinnak\s+megfelelő\s+mennyiségű\s+","",part,flags=re.I)
         part=re.sub(r"^(?:kenőcsben|krémben|gélben|szirupban|hintőporban|porban)\s+","",part,flags=re.I)

@@ -1,0 +1,853 @@
+{
+  "_doc": "Tünet -> hatóanyag tudásréteg. Kézzel karbantartott, auditálható tartalom; nem a scraperből jön. A 'kulcsok' a normalizált ingredient_key értékek (a reference/ingredient_aliases.json kanonizálása UTÁN). Ha egy kulcs nincs meg az adatban, a generátor kihagyja és figyelmeztet. Ez tájékoztatás, nem orvosi tanács. A 'prefer_forms' a panasznál ajánlott gyógyszerformák sorrendje (részszó-egyezés); az opció-szintű 'forms' KEMÉNY szűrő: csak ilyen formájú készítmény ajánlható. Ez zárja ki például, hogy az orrdugulásnál dexpanthenol-bőrkenőcs jelenjen meg.",
+  "symptoms": [
+    {
+      "id": "fejfajas",
+      "label": "Fejfájás",
+      "icon": "pain",
+      "blurb": "Alkalmi fejfájásra a paracetamol és az ibuprofén az első választás. Havi tíz napnál gyakoribb fájdalomcsillapító-szedés maga is fejfájást tarthat fenn.",
+      "options": [
+        {
+          "key": "paracetamol",
+          "role": "first",
+          "why": "Gyomorkímélő, terhesség alatt is a legbiztonságosabb választás. Felnőttnek 500–1000 mg alkalmanként.",
+          "caution": "Napi 4 g fölött májkárosító. Több készítmény is tartalmazza, könnyű véletlenül túladagolni."
+        },
+        {
+          "key": "ibuprofen",
+          "role": "first",
+          "why": "Gyulladáscsökkentő is, ezért lüktető, feszülő fejfájásra gyakran hatásosabb. 200–400 mg alkalmanként.",
+          "caution": "Étkezés után. Gyomorfekély, asztma, veseelégtelenség és terhesség 3. harmada esetén nem javasolt."
+        },
+        {
+          "key": "acetilszalicilsav",
+          "role": "alt",
+          "why": "Klasszikus választás, 500 mg-os adagban.",
+          "caution": "12 év alatt nem adható. Vérzékenységet fokoz."
+        },
+        {
+          "key": "koffein+paracetamol+propifenazon",
+          "role": "alt",
+          "why": "Kombináció, valamivel gyorsabb hatáskezdettel.",
+          "caution": "A koffein miatt este kerülendő; a kombinációk gyorsabban vezetnek gyógyszer okozta fejfájáshoz."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula",
+        "granulátum",
+        "pezsgő"
+      ]
+    },
+    {
+      "id": "laz",
+      "label": "Láz",
+      "icon": "pain",
+      "blurb": "A láz önmagában nem betegség. Lázcsillapító akkor indokolt, ha rontja a közérzetet — nem a hőmérő számától kell megijedni.",
+      "options": [
+        {
+          "key": "paracetamol",
+          "role": "first",
+          "why": "Felnőttnek és gyereknek is első választás, testsúlyra adagolva.",
+          "caution": "Gyerekeknél a szirup és a kúp mg-értéke eltér, mindig a testsúly szerinti adag számít."
+        },
+        {
+          "key": "ibuprofen",
+          "role": "first",
+          "why": "Hosszabb hatástartam, 6–8 óra. Gyereknek 20 mg/ml vagy 40 mg/ml szuszpenzióban.",
+          "caution": "Bárányhimlő és kiszáradás esetén kerülendő."
+        },
+        {
+          "key": "metamizol-natrium",
+          "role": "alt",
+          "why": "Erős láz- és fájdalomcsillapító, ha a fentiek nem elegendők.",
+          "caution": "Ritkán súlyos vérképzőszervi mellékhatás; nem első választás, és nem tartós szedésre való."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula",
+        "szirup",
+        "szuszpenz",
+        "granulátum"
+      ]
+    },
+    {
+      "id": "menstruacios",
+      "label": "Menstruációs görcs",
+      "icon": "pain",
+      "blurb": "A görcsöt prosztaglandinok okozzák, ezért itt a gyulladáscsökkentők jobbak a paracetamolnál. Érdemes a fájdalom kezdetén elkezdeni.",
+      "options": [
+        {
+          "key": "ibuprofen",
+          "role": "first",
+          "why": "400 mg alkalmanként; a legjobban vizsgált választás erre a panaszra.",
+          "caution": "Étkezés után, legfeljebb néhány napig."
+        },
+        {
+          "key": "naproxen",
+          "role": "first",
+          "why": "Hosszabb hatás, ritkábban kell bevenni.",
+          "caution": "Ugyanazok a gyomor- és vesekockázatok, mint az ibuprofénnél."
+        },
+        {
+          "key": "drotaverin",
+          "role": "alt",
+          "why": "Görcsoldó, a fájdalom simaizom-eredetű részére hat. Fájdalomcsillapítóval együtt is adható.",
+          "caution": "Vérnyomáscsökkentő hatása lehet."
+        },
+        {
+          "key": "dexketoprofen",
+          "role": "alt",
+          "why": "Gyors hatáskezdet, ha az ibuprofén nem elég.",
+          "caution": "Legfeljebb néhány napig."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula",
+        "granulátum"
+      ]
+    },
+    {
+      "id": "izom-izulet",
+      "label": "Izom- és ízületi fájdalom",
+      "icon": "joint",
+      "blurb": "Helyi kezeléssel a hatóanyag ott hat, ahol a panasz van, és jóval kevesebb jut a szervezetbe, mint tablettából.",
+      "options": [
+        {
+          "key": "diklofenak-natrium",
+          "role": "first",
+          "why": "Gél formában a legjobban vizsgált helyi gyulladáscsökkentő. Az 1%-os és a 2%-os között az adagolás gyakorisága a különbség.",
+          "caution": "Ne kerüljön nyílt sebre; a kezelt bőrfelület napfényre érzékenyebb."
+        },
+        {
+          "key": "diklofenak-epolamin",
+          "role": "alt",
+          "why": "Ugyanaz a hatóanyagcsalád, gél és tapasz formában.",
+          "caution": "Tapasznál a bőrirritáció gyakoribb."
+        },
+        {
+          "key": "ibuprofen",
+          "role": "alt",
+          "why": "Gél és krém formában is kapható, valamint tablettában erősebb panaszra.",
+          "caution": "Tartós szedés helyett érdemes az okot kivizsgáltatni."
+        },
+        {
+          "key": "glukozamin-szulfat",
+          "role": "note",
+          "why": "Ízületi kopásra szedett készítmény, hatása lassan és mérsékelten jelentkezik.",
+          "caution": "Nem fájdalomcsillapító; hetek kellenek, mire bármit érezni belőle.",
+          "forms": [
+            "tabletta",
+            "kapszula",
+            "por",
+            "granulátum"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "gél",
+        "krém",
+        "tapasz",
+        "kenőcs"
+      ]
+    },
+    {
+      "id": "orrdugulas",
+      "label": "Orrdugulás",
+      "icon": "nose",
+      "blurb": "Az érösszehúzó orrspray néhány perc alatt hat, de öt–hét napnál tovább használva visszacsapó orrdugulást okoz. Ez a leggyakoribb hiba a nátha kezelésében.",
+      "options": [
+        {
+          "key": "xilometazolin-hidroklorid",
+          "role": "first",
+          "why": "Gyors, 6–8 órás hatás. Felnőtt 0,1%, gyerek 0,05%.",
+          "caution": "Legfeljebb 5–7 nap egyfolytában."
+        },
+        {
+          "key": "oximetazolin-hidroklorid",
+          "role": "first",
+          "why": "Hosszabb, akár 12 órás hatás, így naponta kétszer elég.",
+          "caution": "Ugyanaz az 5–7 napos korlát."
+        },
+        {
+          "key": "dexpantenol+xilometazolin-hidroklorid",
+          "role": "alt",
+          "why": "A dexpanthenol a spray szárító hatását mérsékli, ápolja a nyálkahártyát.",
+          "caution": "Az időkorlát erre is vonatkozik."
+        },
+        {
+          "key": "dexpantenol",
+          "role": "note",
+          "why": "Önmagában nem szűkíti az eret, viszont a kiszáradt, sérült orrnyálkahártyát regenerálja — a spray abbahagyása után hasznos.",
+          "caution": "Nem oldja az akut dugulást.",
+          "forms": [
+            "orrspray",
+            "orrcsepp"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "orrspray",
+        "orrcsepp",
+        "csepp"
+      ]
+    },
+    {
+      "id": "kohoges-szaraz",
+      "label": "Száraz, ingerköhögés",
+      "icon": "lung",
+      "blurb": "Száraz köhögésnél a cél a köhögési inger csillapítása. Köptetőt ilyenkor nem érdemes szedni, mert nincs mit felköhögni.",
+      "options": [
+        {
+          "key": "dextrometorfan",
+          "role": "first",
+          "why": "Központi köhögéscsillapító, éjszakai ingerköhögésre.",
+          "caution": "Ne kombinálja köptetővel. Egyes antidepresszánsokkal kölcsönhat."
+        },
+        {
+          "key": "prenoxdiazin-hidroklorid",
+          "role": "alt",
+          "why": "Helyileg érzésteleníti a légutak nyálkahártyáját, nem hat a légzőközpontra.",
+          "caution": "A tablettát nem szabad szétrágni, mert érzésteleníti a szájat."
+        },
+        {
+          "key": "borostyanlevel-szaraz-kivonata",
+          "role": "note",
+          "why": "Növényi készítmény, gyereknek is adható; enyhe panaszra elterjedt választás.",
+          "caution": "A hatásosság bizonyítottsága gyengébb, mint a fentieké."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula",
+        "szirup",
+        "oldat"
+      ]
+    },
+    {
+      "id": "kohoges-hurutos",
+      "label": "Hurutos köhögés",
+      "icon": "lung",
+      "blurb": "Nyákoldónál a legfontosabb a bőséges folyadék — enélkül a sűrű váladék nem hígul fel. Az esti bevétel kerülendő, mert a felszabaduló váladék zavarja az alvást.",
+      "options": [
+        {
+          "key": "acetilcisztein",
+          "role": "first",
+          "why": "Felbontja a nyák kötéseit. Napi 600 mg egyszerre is bevehető.",
+          "caution": "Gyomorpanaszt okozhat; asztmásoknál óvatosan."
+        },
+        {
+          "key": "ambroxol",
+          "role": "first",
+          "why": "Fokozza a csillószőrök működését, enyhe helyi érzéstelenítő hatása is van.",
+          "caution": "Gyomorégés előfordulhat."
+        },
+        {
+          "key": "karbocisztein",
+          "role": "alt",
+          "why": "Hasonló nyákoldó hatás, más mechanizmussal.",
+          "caution": "Gyomorfekélynél kerülendő."
+        },
+        {
+          "key": "erdosztein",
+          "role": "alt",
+          "why": "Rövidebb kezelési idő, jó tolerálhatóság.",
+          "caution": "Drágább, mint a fenti kettő."
+        }
+      ],
+      "prefer_forms": [
+        "pezsgő",
+        "tabletta",
+        "granulátum",
+        "kapszula",
+        "por"
+      ]
+    },
+    {
+      "id": "torokfajas",
+      "label": "Torokfájás",
+      "icon": "throat",
+      "blurb": "A torokfájás túlnyomó része vírusos és magától elmúlik. A szopogató tabletta a tünetet enyhíti, nem a fertőzést gyógyítja.",
+      "options": [
+        {
+          "key": "flurbiprofen",
+          "role": "first",
+          "why": "Valódi gyulladáscsökkentő a torokban, erős fájdalomra ez a leghatásosabb helyi választás.",
+          "caution": "Legfeljebb 3 nap; gyomorérzékenyeknél óvatosan."
+        },
+        {
+          "key": "benzidamin",
+          "role": "first",
+          "why": "Gyulladáscsökkentő és enyhén érzéstelenítő, spray és tabletta formában.",
+          "caution": "A spray csípő érzést okozhat."
+        },
+        {
+          "key": "amilmetakrezol+diklor-benzil-alkohol",
+          "role": "alt",
+          "why": "Enyhe fertőtlenítő, kellemes ízű; enyhébb panaszra elegendő.",
+          "caution": "Fájdalomcsillapító hatása gyenge."
+        },
+        {
+          "key": "klorhexidin+lidokain",
+          "role": "alt",
+          "why": "Fertőtlenítés és helyi érzéstelenítés egyben.",
+          "caution": "A lidokain miatt étkezés előtt kerülendő, mert zavarja a nyelést."
+        }
+      ],
+      "prefer_forms": [
+        "szopogató",
+        "tabletta"
+      ]
+    },
+    {
+      "id": "megfazas",
+      "label": "Megfázás, influenzás tünetek",
+      "icon": "cold",
+      "blurb": "A kombinált italporok kényelmesek, de fix arányban tartalmaznak több hatóanyagot. Ha csak egy tünete van, a célzott készítmény olcsóbb és biztonságosabb.",
+      "options": [
+        {
+          "key": "aszkorbinsav+fenilefrin+paracetamol",
+          "role": "first",
+          "why": "Láz, fájdalom és orrdugulás egyszerre.",
+          "caution": "Paracetamolt tartalmaz — ne szedjen mellé külön paracetamolt."
+        },
+        {
+          "key": "ibuprofen+pszeudoefedrin",
+          "role": "alt",
+          "why": "Gyulladáscsökkentő és erős orrdugulás-oldó kombináció.",
+          "caution": "Magas vérnyomásnál, szívbetegségnél kerülendő."
+        },
+        {
+          "key": "acetilszalicilsav+pszeudoefedrin",
+          "role": "alt",
+          "why": "Hasonló kombináció aszpirinnel.",
+          "caution": "12 év alatt nem adható."
+        },
+        {
+          "key": "paracetamol",
+          "role": "note",
+          "why": "Ha csak láz és fájdalom van, ez önmagában elég — töredékáron.",
+          "caution": ""
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "granulátum",
+        "por",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "allergia",
+      "label": "Szénanátha, allergia",
+      "icon": "pollen",
+      "blurb": "A tabletta az egész szervezetre hat, az orrspray és a szemcsepp csak ott, ahol a panasz van. Súlyosabb esetben a kettő kombinálható.",
+      "options": [
+        {
+          "key": "cetirizin",
+          "role": "first",
+          "why": "Gyorsan hat, napi egyszer. A legolcsóbb generikumok között több ezer forint különbség van.",
+          "caution": "Enyhén álmosíthat."
+        },
+        {
+          "key": "levocetirizin",
+          "role": "alt",
+          "why": "A cetirizin aktív izomerje, fele akkora adagban.",
+          "caution": "Ugyanaz az álmosító hatás."
+        },
+        {
+          "key": "loratadin",
+          "role": "alt",
+          "why": "Kevésbé álmosít, napi egyszer.",
+          "caution": "Lassabb hatáskezdet."
+        },
+        {
+          "key": "dezloratadin",
+          "role": "alt",
+          "why": "A loratadin aktív metabolitja.",
+          "caution": ""
+        },
+        {
+          "key": "fexofenadin-hidroklorid",
+          "role": "alt",
+          "why": "Gyakorlatilag nem álmosít, ezért vezetés mellett is jó választás.",
+          "caution": "Gyümölcslével csökken a felszívódása."
+        },
+        {
+          "key": "azelasztin",
+          "role": "note",
+          "why": "Orrspray és szemcsepp formában, 15 perc alatt hat, helyileg.",
+          "caution": "Keserű mellékíz.",
+          "forms": [
+            "orrspray",
+            "szemcsepp"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "gyomoreges",
+      "label": "Gyomorégés, reflux",
+      "icon": "stomach",
+      "blurb": "Alkalmi panaszra savlekötő, gyakori panaszra savtermelés-csökkentő. A savlekötő percek alatt hat, de rövid ideig; a PPI napok alatt épül fel, viszont tartósan hat.",
+      "options": [
+        {
+          "key": "kalcium-karbonat+magnezium-karbonat",
+          "role": "first",
+          "why": "Azonnali enyhülés alkalmi panaszra.",
+          "caution": "Más gyógyszerektől 2 órával elkülönítve."
+        },
+        {
+          "key": "kalcium-karbonat+natrium-alginat+natrium-hidrogen-karbonat",
+          "role": "first",
+          "why": "Védőréteget képez a gyomortartalom tetején — refluxra ez a legcélzottabb.",
+          "caution": "Nátriumot tartalmaz."
+        },
+        {
+          "key": "pantoprazol",
+          "role": "alt",
+          "why": "Heti több alkalommal jelentkező gyomorégésre, 2 hetes kúrában.",
+          "caution": "Nem azonnali hatású; 2 hétnél tovább csak orvosi javaslatra."
+        },
+        {
+          "key": "famotidin",
+          "role": "alt",
+          "why": "A savlekötő és a PPI között: néhány óra alatt hat, néhány óráig tart.",
+          "caution": ""
+        }
+      ],
+      "prefer_forms": [
+        "rágótabletta",
+        "tabletta",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "puffadas",
+      "label": "Puffadás, felfúvódás",
+      "icon": "stomach",
+      "blurb": "A szimetikon nem szívódik fel, csak a bélgázbuborékokat bontja szét — ezért gyakorlatilag bárkinek adható, csecsemőnek is.",
+      "options": [
+        {
+          "key": "szimetikon",
+          "role": "first",
+          "why": "Egyszerű, biztonságos, csecsemőkortól adható.",
+          "caution": "Ha a puffadás mellett fogyás vagy vérzés van, az kivizsgálandó.",
+          "forms": [
+            "kapszula",
+            "tabletta",
+            "emulz",
+            "szuszpenz",
+            "csepp"
+          ]
+        },
+        {
+          "key": "alverin-citrat+szimetikon",
+          "role": "alt",
+          "why": "Görcsoldóval kiegészítve, ha a puffadás hasi görccsel jár.",
+          "caution": ""
+        },
+        {
+          "key": "aktiv-szen",
+          "role": "note",
+          "why": "Megköti a gázokat és a toxinokat.",
+          "caution": "Más gyógyszerek felszívódását is gátolja."
+        }
+      ],
+      "prefer_forms": [
+        "kapszula",
+        "tabletta"
+      ]
+    },
+    {
+      "id": "hasmenes",
+      "label": "Hasmenés",
+      "icon": "gut",
+      "blurb": "A legfontosabb a folyadék- és sópótlás. A bélmozgást lassító szer lázas, véres hasmenésnél nem javasolt, mert bent tartja a kórokozót.",
+      "options": [
+        {
+          "key": "loperamid-hidroklorid",
+          "role": "first",
+          "why": "Gyorsan megállítja a hasmenést, utazáshoz praktikus.",
+          "caution": "Láz vagy véres széklet esetén nem szabad szedni. 2 napnál tovább nem."
+        },
+        {
+          "key": "racekadotril",
+          "role": "alt",
+          "why": "A bélbe irányuló vízkiválasztást gátolja, nem lassítja a bélmozgást.",
+          "caution": "Drágább."
+        },
+        {
+          "key": "saccharomyces-boulardii",
+          "role": "alt",
+          "why": "Élesztő alapú probiotikum, antibiotikum melletti hasmenésre is.",
+          "caution": "Immunhiányos állapotban kerülendő."
+        },
+        {
+          "key": "dioszmektit",
+          "role": "alt",
+          "why": "Bevonja a bélnyálkahártyát, gyereknek is adható.",
+          "caution": "Más gyógyszertől elkülönítve."
+        }
+      ],
+      "prefer_forms": [
+        "kapszula",
+        "tabletta",
+        "por",
+        "granulátum"
+      ]
+    },
+    {
+      "id": "szekrekedes",
+      "label": "Székrekedés",
+      "icon": "gut",
+      "blurb": "Először a rost, a folyadék és a mozgás. A kontakt hashajtó gyors, de tartósan szedve hozzászokást okoz; az ozmotikus lágyító hosszú távon is biztonságos.",
+      "options": [
+        {
+          "key": "laktuloz",
+          "role": "first",
+          "why": "Ozmotikusan lágyítja a székletet, tartósan is szedhető, terhesség alatt is.",
+          "caution": "Az első napokban puffaszthat."
+        },
+        {
+          "key": "biszakodil",
+          "role": "alt",
+          "why": "6–12 óra alatt ható kontakt hashajtó, alkalmi használatra.",
+          "caution": "Néhány napnál tovább nem javasolt."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "szirup",
+        "oldat"
+      ]
+    },
+    {
+      "id": "hasgorcs",
+      "label": "Hasi görcs",
+      "icon": "stomach",
+      "blurb": "A görcsoldó a simaizom feszülését oldja. Ha a hasi fájdalom erős, tartós vagy lázzal jár, az orvosi eset.",
+      "options": [
+        {
+          "key": "drotaverin",
+          "role": "first",
+          "why": "Széles körben használt görcsoldó hasi, epe-, vese- és menstruációs görcsre.",
+          "caution": "Vérnyomáscsökkentő hatása lehet."
+        },
+        {
+          "key": "hioszcin-butilbromid",
+          "role": "alt",
+          "why": "A bélfalra célzottan hat, alig szívódik fel.",
+          "caution": "Szájszárazság, homályos látás előfordulhat."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "utazasi",
+      "label": "Utazási betegség, hányinger",
+      "icon": "gut",
+      "blurb": "Megelőzésre a leghatásosabb: indulás előtt fél–egy órával bevéve. Ha már megvan a hányinger, sokkal kevésbé hat.",
+      "options": [
+        {
+          "key": "dimenhidrinat",
+          "role": "first",
+          "why": "Klasszikus választás, gyereknek is van kiszerelése.",
+          "caution": "Álmosít; vezetés előtt nem javasolt."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta"
+      ]
+    },
+    {
+      "id": "visszer",
+      "label": "Visszér, nehézláb",
+      "icon": "vein",
+      "blurb": "A vénás készítmények a panaszt enyhítik, a visszeret nem tüntetik el. A kompressziós harisnya legalább annyit számít.",
+      "options": [
+        {
+          "key": "diozmin",
+          "role": "first",
+          "why": "A legtöbbet vizsgált vénás hatóanyag lábdagadásra, nehézláb-érzésre, aranyeres rohamra. A generikumok között kétszeres árkülönbség is van.",
+          "caution": "Hetek kellenek a hatáshoz."
+        },
+        {
+          "key": "oxerutin",
+          "role": "alt",
+          "why": "Hajszálér-védő hatás, tabletta és gél formában.",
+          "caution": ""
+        },
+        {
+          "key": "heparin-natrium",
+          "role": "note",
+          "why": "Gél formában felületes vénagyulladásra, zúzódásra.",
+          "caution": "Nyílt sebre nem."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "aranyer",
+      "label": "Aranyér",
+      "icon": "vein",
+      "blurb": "A helyi kezelés a tünetet enyhíti; a székrekedés megszüntetése nélkül visszatér.",
+      "options": [
+        {
+          "key": "diozmin",
+          "role": "first",
+          "why": "Belsőleg, akut aranyeres rohamra nagyobb adagban.",
+          "caution": "Hetekig szedendő."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta"
+      ]
+    },
+    {
+      "id": "labgomba",
+      "label": "Láb- és bőrgomba",
+      "icon": "skin",
+      "blurb": "A legnagyobb hiba a kezelés korai abbahagyása: a tünetek eltűnése után még 1–2 hétig folytatni kell, különben kiújul.",
+      "options": [
+        {
+          "key": "terbinafin-hidroklorid",
+          "role": "first",
+          "why": "Rövid, akár 1 hetes kezelés lábgombára.",
+          "caution": "Körömgombára a krém önmagában nem elég.",
+          "forms": [
+            "krém",
+            "oldat",
+            "spray"
+          ]
+        },
+        {
+          "key": "klotrimazol",
+          "role": "first",
+          "why": "Legolcsóbb, széles spektrumú; naponta 2–3-szor, 2–4 hétig.",
+          "caution": "Hosszabb kezelési idő.",
+          "forms": [
+            "krém",
+            "oldat",
+            "spray",
+            "por"
+          ]
+        },
+        {
+          "key": "bifonazol",
+          "role": "alt",
+          "why": "Naponta egyszer elég.",
+          "caution": "",
+          "forms": [
+            "krém",
+            "oldat",
+            "spray",
+            "por"
+          ]
+        },
+        {
+          "key": "naftifin",
+          "role": "alt",
+          "why": "Gombaellenes és gyulladáscsökkentő hatás egyben, gyulladt, viszkető gócnál előny.",
+          "caution": "",
+          "forms": [
+            "krém",
+            "oldat"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "krém",
+        "oldat",
+        "spray",
+        "por",
+        "sampon"
+      ]
+    },
+    {
+      "id": "koromgomba",
+      "label": "Körömgomba",
+      "icon": "nail",
+      "blurb": "A gyógyszeres körömlakk hónapokig tartó kezelés: kézkörmön 6, lábkörmön 9–12 hónap. A hatóanyag mennyisége azonos, az ár viszont kétszeres eltérést mutat.",
+      "options": [
+        {
+          "key": "amorolfin",
+          "role": "first",
+          "why": "Heti 1–2 alkalommal felvitt lakk.",
+          "caution": "Hónapokig kitartás kell.",
+          "forms": [
+            "körömlakk"
+          ]
+        },
+        {
+          "key": "ciklopirox",
+          "role": "alt",
+          "why": "Napi felvitel, szélesebb spektrum.",
+          "caution": "Gyakoribb alkalmazás.",
+          "forms": [
+            "körömlakk"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "körömlakk"
+      ]
+    },
+    {
+      "id": "herpesz",
+      "label": "Ajakherpesz",
+      "icon": "skin",
+      "blurb": "Akkor hat igazán, ha a bizsergő, viszkető szakaszban kezdi — a hólyag megjelenése után már alig rövidíti a lefolyást.",
+      "options": [
+        {
+          "key": "aciklovir",
+          "role": "first",
+          "why": "Naponta ötször, 4–5 napig.",
+          "caution": "A kezelés korai kezdése a döntő.",
+          "forms": [
+            "krém",
+            "kenőcs"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "krém",
+        "kenőcs"
+      ]
+    },
+    {
+      "id": "seb",
+      "label": "Seb, horzsolás fertőtlenítése",
+      "icon": "drop",
+      "blurb": "A friss sebet elsősorban ki kell mosni. A fertőtlenítő ezt kiegészíti, nem helyettesíti.",
+      "options": [
+        {
+          "key": "fenoxietanol+oktenidin-dihidroklorid",
+          "role": "first",
+          "why": "Nem csíp, nem színez, széles spektrumú — gyereknél is jól használható.",
+          "caution": "Szembe nem kerülhet."
+        },
+        {
+          "key": "povidon-jod",
+          "role": "alt",
+          "why": "Széles spektrum, olcsó.",
+          "caution": "Barnára színez; pajzsmirigy-betegségnél és terhesség alatt kerülendő."
+        },
+        {
+          "key": "dexpantenol",
+          "role": "note",
+          "why": "Nem fertőtlenít, hanem a hámosodást segíti a sebtisztítás után.",
+          "caution": "",
+          "forms": [
+            "krém",
+            "kenőcs",
+            "spray"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "oldat",
+        "spray",
+        "krém",
+        "kenőcs"
+      ]
+    },
+    {
+      "id": "alvas",
+      "label": "Elalvási nehézség",
+      "icon": "sleep",
+      "blurb": "A melatonin nem altató: az elalvás időzítését állítja, ezért időeltolódásnál és eltolódott ritmusnál a leghasznosabb. Lefekvés előtt 1–2 órával érdemes bevenni.",
+      "options": [
+        {
+          "key": "melatonin",
+          "role": "first",
+          "why": "Rövid távon, elalvási nehézségre és jet lagre.",
+          "caution": "Vezetés előtt nem. Tartós álmatlanság okát ki kell vizsgálni."
+        },
+        {
+          "key": "levendulaolaj",
+          "role": "alt",
+          "why": "Nyugtalanságból, feszültségből eredő alvászavarra.",
+          "caution": "Böfögéskor levendulaíz."
+        }
+      ],
+      "prefer_forms": [
+        "tabletta",
+        "kapszula"
+      ]
+    },
+    {
+      "id": "leszokas",
+      "label": "Leszokás a dohányzásról",
+      "icon": "smoke",
+      "blurb": "A nikotinpótlás a leszokás esélyét körülbelül megduplázza. A tapasz az alapszintet adja, a rágógumi vagy a spray a hirtelen sóvárgást kezeli — a kettő kombinálható.",
+      "options": [
+        {
+          "key": "nikotin",
+          "role": "first",
+          "why": "Tapasz, rágógumi, szopogató tabletta és szájspray formában. Napi 20 szálnál többet szívónak a nagyobb erősség javasolt.",
+          "caution": "Rágógumit lassan, szünetekkel kell rágni, különben csuklás és gyomorégés lesz belőle."
+        }
+      ],
+      "prefer_forms": [
+        "rágógumi",
+        "szopogató",
+        "tapasz",
+        "spray",
+        "tabletta"
+      ]
+    },
+    {
+      "id": "szaraz-szem",
+      "label": "Száraz, irritált szem",
+      "icon": "eye",
+      "blurb": "A vörösséget szűkítő szemcsepp és a műkönny nem ugyanaz. Az érösszehúzót néhány napnál tovább használva a vörösség visszacsapóan erősödik.",
+      "options": [
+        {
+          "key": "tetrizolin-hidroklorid",
+          "role": "alt",
+          "why": "Vörös szem gyors, látványos csillapítása.",
+          "caution": "Legfeljebb néhány nap; zöldhályognál kerülendő.",
+          "forms": [
+            "szemcsepp"
+          ]
+        }
+      ],
+      "prefer_forms": [
+        "szemcsepp",
+        "szemgél"
+      ]
+    },
+    {
+      "id": "maj",
+      "label": "Májvédelem",
+      "icon": "liver",
+      "blurb": "A májvédő készítmények kiegészítő szerepűek; az alkohol elhagyása és a testsúly rendezése nagyságrenddel többet számít.",
+      "options": [
+        {
+          "key": "mariatovis-kivonat",
+          "role": "first",
+          "why": "A legszélesebb körben használt máj-kiegészítő.",
+          "caution": "Nem helyettesíti a kivizsgálást emelkedett májértéknél."
+        }
+      ],
+      "prefer_forms": [
+        "kapszula",
+        "tabletta",
+        "granulátum"
+      ]
+    }
+  ]
+}

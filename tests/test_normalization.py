@@ -1,4 +1,5 @@
 from scripts.build_normalized_catalog import (
+    build_group_rows,
     canonical_ingredient,
     normalize_ingredients,
     normalize_form,
@@ -18,6 +19,14 @@ def test_parse_package_amount():
     assert parse_package_amount("3x20 db", "") == (60.0, "db", "3x20 db")
     assert parse_package_amount(None, "Béres Actival Extra filmtabletta 90x") == (90.0, "db", "90 db")
     assert parse_package_amount("100g", "") == (100.0, "g", "100 g")
+    assert parse_package_amount(
+        "5 ml",
+        "Panactiv 100 mg/5 ml belsőleges szuszpenzió 100ml",
+    ) == (100.0, "ml", "100 ml")
+    assert parse_package_amount(
+        None,
+        "Smecta 3g por szuszpenzióhoz 30 tasak",
+    ) == (30.0, "tasak", "30 tasak")
 
 
 def test_canonical_ingredient_aliases():
@@ -68,7 +77,55 @@ def test_normalize_strength():
         "50 mg ibuprofént tartalmaz 1 g krémben",
     ) == ("50 mg", "50-mg")
     assert normalize_strength(
+        "Dolgit krém 50g",
+        "1 g + 50 mg",
+        "krém",
+    ) == ("50 mg/g", "50-mg-per-g")
+    assert normalize_strength(
         "Paramax Forte 1 g tabletta 100 db",
         "PARAMAX Junior 250 mg tabletta: 250 mg paracetamolt tartalmaz tablettánként. "
         "PARAMAX Forte 1 g tabletta: 1 g paracetamol tablettánként.",
     ) == ("1 g", "1-g")
+
+
+def _group_test_row(product_id, name, unit_price):
+    return {
+        "id": product_id,
+        "name": name,
+        "url": f"https://example.test/{product_id}",
+        "price_huf": int(unit_price * 10),
+        "unit_price_huf": unit_price,
+        "quality_flags": [],
+        "comparison_group_key": "ibuprofen|400-mg|tabletta|db",
+        "ingredient_display": "ibuprofén",
+        "ingredient_key": "ibuprofen",
+        "strength_display": "400 mg",
+        "strength_key": "400-mg",
+        "form": "tabletta",
+        "form_key": "tabletta",
+        "comparison_unit": "db",
+        "primary_category": "Fájdalomcsillapítás, lázcsillapítás",
+    }
+
+
+def test_group_savings_separates_other_brand_from_pack_size():
+    groups, _ = build_group_rows([
+        _group_test_row(1, "Ibumax 400 mg filmtabletta 100 db", 10),
+        _group_test_row(2, "Ibumax 400 mg filmtabletta 20 db", 20),
+        _group_test_row(3, "Nurofen Forte 400 mg bevont tabletta 24 db", 30),
+    ])
+
+    group = groups[0]
+    assert group["savings_vs_other_brand_pct"] == 66.7
+    assert group["savings_vs_other_brand_reference"] == "Nurofen Forte 400 mg bevont tabletta 24 db"
+    assert group["pack_size_saving_pct"] == 50.0
+    assert group["pack_size_saving_reference"] == "Ibumax 400 mg filmtabletta 20 db"
+
+
+def test_group_savings_suppresses_implausible_other_brand_spread():
+    groups, _ = build_group_rows([
+        _group_test_row(1, "Ibumax 400 mg filmtabletta 100 db", 10),
+        _group_test_row(2, "Nurofen Forte 400 mg bevont tabletta 24 db", 200),
+    ])
+
+    assert groups[0]["savings_vs_other_brand_pct"] is None

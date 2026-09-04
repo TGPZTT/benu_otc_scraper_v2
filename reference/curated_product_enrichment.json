@@ -374,6 +374,20 @@
         "https://www.gyogyszerwebaruhaz.hu/termekek/neo-citran-max-koptetovel-oldathoz-por-belsoleges"
       ],
       "evidence_note": "OGYÉI/NNGYK lists paracetamol, phenylephrine hydrochloride and guaifenesin; public leaflet text gives 1000/12.2/200 mg per sachet. The cached BENU text drops zeros in this dose line, so this is kept as curated data."
+    },
+    {
+      "url": "https://benu.hu/products/kaloba-szirup-100ml",
+      "match_name": "Kaloba szirup 100ml",
+      "active_ingredient_raw": "1 g szirup 256 mg muskátligyökér (Pelargonium sidoides radix) szárított folyékony kivonatot (1:8-10) (EPs 7630) tartalmaz",
+      "ingredient_names": [
+        "muskátligyökér folyékony kivonat"
+      ],
+      "active_ingredient_source": "curated_benu_leaflet_cleanup",
+      "registration_number": "OGYI-T-20288",
+      "evidence_urls": [
+        "https://benu.hu/products/kaloba-szirup-100ml"
+      ],
+      "evidence_note": "The cached BENU leaflet identifies muskátligyökér/Pelargonium sidoides radix dried liquid extract; the previous parser retained the extraction-solvent sentence in ingredient_names."
     }
   ]
 }
